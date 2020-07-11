@@ -3,7 +3,7 @@
 """
 Created on Tue Jun 30 15:01:08 2020
 
-@author: suresh
+@author: suresh, eric, jessica
 """
 
 import utils
@@ -84,7 +84,7 @@ def main(env, demo_dir, skip, view, save_path, width, height, render):
     if not os.path.exists(pkl_dir):
         os.makedirs(pkl_dir)
         os.makedirs(images_dir)
-    
+
     pkl_seq = 0
     gym_env = gym.make(env)
     for root, dirs, files in os.walk(demo_dir, topdown=False):
@@ -129,7 +129,7 @@ def main(env, demo_dir, skip, view, save_path, width, height, render):
 if __name__ == '__main__':
     demo_dir = '/media/suresh/research/github/robotics/rl_robotics/packages/relay_policy_learning/kitchen_demos_multitask/friday_kettle_bottomknob_switch_slide/'
     save_path = '../dataset/train/friday_kettle_bottomknob_switch_slide'
-    
+
     skip = 40
     view = 'playback'
     render = 'OFF' # or 'ON'
