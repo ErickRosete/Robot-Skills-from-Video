@@ -1,10 +1,12 @@
-from networks import  VisionNetwork, PlanRecognitionNetwork, PlanProposalNetwork
-from action_decoder_network import ActionDecoderNetwork
+#import from training dir
+from networks.networks import  VisionNetwork, PlanRecognitionNetwork, PlanProposalNetwork
+from networks.action_decoder_network import ActionDecoderNetwork
 import torch
 import os
 import numpy as np
 import torch.optim as optim
 import torch.distributions as D
+from torch.distributions.normal import Normal
 
 class PlayLMP():
     def __init__(self, lr=2e-4, beta=0.01):
@@ -49,7 +51,7 @@ class PlayLMP():
         obs = self.to_tensor(obs)
         pp_input = torch.cat([encoded_imgs[:, 0], obs[:,0], encoded_imgs[:,-1]], dim=-1)
         mu_p, sigma_p = self.plan_proposal(pp_input)#(batch, 256) each
-        pr_dist = Normal(mu_p, sigma_p)
+        pp_dist = Normal(mu_p, sigma_p)
 
         # ------------Plan Recognition------------ #
         #plan proposal input = visuo_proprio =  (batch_size, sequence_length, 73)
@@ -88,7 +90,8 @@ class PlayLMP():
             # ------------Plan Proposal------------ #
             obs = self.to_tensor(obs)
             pp_input = torch.cat([encoded_imgs[:, 0], obs, encoded_imgs[:,-1]], dim=-1)
-            pp_dist = self.plan_proposal(pp_input)
+            mu_p, sigma_p = self.plan_proposal(pp_input)#(batch, 256) each
+            pp_dist = Normal(mu_p, sigma_p)
             
             # ------------ Policy network ------------ #
             sampled_plan = pp_dist.sample() #sample from proposal net

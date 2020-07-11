@@ -1,3 +1,5 @@
 networks/__pycache__/
 .vscode/
 data/
+utils/__pycache__/
+__pycache__/

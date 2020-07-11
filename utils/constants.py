@@ -15,5 +15,5 @@ N_EPOCH = 5
 WINDOW_SIZE = 16
 VAL_BATCH_SIZE = 128
 TRAIN_BATCH_SIZE = 8 
-FILES_TO_LOAD = 5 #Files to load during training simultaneously
+FILES_TO_LOAD = 1 #Files to load during training simultaneously
 EVAL_FREQ = 20 #validate every eval_freq batches

@@ -18,6 +18,11 @@ class VisionNetwork(nn.Module):
     # reference: https://arxiv.org/pdf/2005.07648.pdf
     def __init__(self):
         super(VisionNetwork, self).__init__()
+        #w,h,kernel_size,padding,stride
+        w,h = self.calc_out_size(300,300,8,0,4)
+        w,h = self.calc_out_size(w,h,4,0,2)
+        w,h = self.calc_out_size(w,h,3,0,1)
+        #moel
         self.conv_model = nn.Sequential(
             nn.Conv2d(in_channels=3, out_channels=32, kernel_size=8, stride=4), # shape: [N, 3, 299, 299]
             nn.ReLU(),
@@ -25,7 +30,7 @@ class VisionNetwork(nn.Module):
             nn.ReLU(),
             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1), # shape: [N, 64, 35, 35]
             nn.ReLU(),
-            SpatialSoftmax(num_rows=33, num_cols=33), # shape: [N, 64, 33, 33]
+            SpatialSoftmax(num_rows=w, num_cols=h), # shape: [N, 64, 33, 33]
             # nn.Flatten(),
             nn.Linear(in_features=128, out_features=512), # shape: [N, 128]
             nn.ReLU(),
@@ -34,7 +39,11 @@ class VisionNetwork(nn.Module):
     def forward(self, x):
         x = self.conv_model(x)
         return x # shape: [N, 64]
-
+    
+    def calc_out_size(self,w,h,kernel_size,padding,stride):
+        width = (w - kernel_size +2*padding)//stride + 1
+        height = (h - kernel_size +2*padding)//stride + 1
+        return width, height
 
 class SpatialSoftmax(nn.Module):
     # reference: https://arxiv.org/pdf/1509.06113.pdf

@@ -8,7 +8,7 @@ if __name__ == "__main__":
     #Network
     writer = SummaryWriter()
     play_lmp = PlayLMP()
-    play_lmp.load("./models/model_b4780.pth")
+    #play_lmp.load("./models/model_b4780.pth")
     
     # ------------ Hyperparams ------------ #
     #Hyperparameters

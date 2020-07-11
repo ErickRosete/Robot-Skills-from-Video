@@ -21,7 +21,8 @@ def load_data(file_names):
     return paths
 
 def read_data(datasets_dir="./data/training"):
-    print("Read training data ...")
+    name_str = os.path.basename(os.path.normpath(datasets_dir))
+    print("Read %s data ..."%name_str)
     file_names = get_filenames(datasets_dir)
     return load_data(file_names)
 
