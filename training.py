@@ -1,32 +1,43 @@
-from network.play_lmp import PlayLMP
+from networks.play_lmp import PlayLMP
 from torch.utils.tensorboard import SummaryWriter
 from preprocessing import read_data, preprocess_data, get_filenames, load_data
+import utils.constants as constants
 
 if __name__ == "__main__":
+    # ------------ Initialization ------------ #
     #Network
     writer = SummaryWriter()
     play_lmp = PlayLMP()
     play_lmp.load("./models/model_b4780.pth")
     
+    # ------------ Hyperparams ------------ #
     #Hyperparameters
-    epochs = 5
-    window_size = 16
-    val_batch_size = 128
-    batch_size = 8 
-    files_to_load = 5 #Files to load during training simultaneously
+    epochs = constants.N_EPOCH
+    window_size = constants.WINDOW_SIZE
+    val_batch_size = constants.VAL_BATCH_SIZE
+    batch_size = constants.TRAIN_BATCH_SIZE 
+    files_to_load = constants.FILES_TO_LOAD #Files to load during training simultaneously
+    eval_freq = constants.EVAL_FREQ #validate every eval_freq batches
 
+    # ------------ Validation data loading ------------ #
     #Validation data
     validation_paths = read_data("./data/validation")
     val_obs, val_imgs, val_acts = preprocess_data(validation_paths, window_size, val_batch_size, True)
+    #Note when preprocesing validation data we return 
+    #[current_img, goal_img] , current_obs, current_action
+    #then val_imgs=(batch,2,3,300,300), val_acts = (batch,9), val_obs = (batch,9)
     val_obs, val_imgs, val_acts = val_obs[:5], val_imgs[:5], val_acts[:5] # Keep only 5 batches (Memory)
     print("Validation, number of batches:", len(val_obs))
     print("Validation, batch size:", val_obs[0].shape[0])
 
+    # ------------ Training ------------ #
     batch = 0
     best_val_accuracy = 0
     for epoch in range(epochs):
         training_filenames = get_filenames("./data/training")
+        # ------------ Filenames loop ------------ #
         while len(training_filenames) > 0:
+            # ------------ Load training data ------------ #
             curr_filenames = training_filenames[:files_to_load] #Loading 5 training files
             del training_filenames[:files_to_load]
             print("Reading training data ...")
@@ -35,20 +46,25 @@ if __name__ == "__main__":
             print("Training, number of batches:", len(train_obs))
             print("Training, batch size:", train_obs[0].shape[0])
 
+            # ------------ Batch training loop ------------ #
             while len(train_obs) > 0:
                 batch_obs, batch_imgs, batch_acts = train_obs.pop(), train_imgs.pop(), train_acts.pop()
                 #STEP
                 training_error = play_lmp.step(batch_obs, batch_imgs, batch_acts)
-                #Validation eval
-                if(batch % 20 == 0):
+                
+                # ------------ Evaluation ------------ #
+                if(batch % eval_freq == 0):
                     val_accuracy = 0
+                    # For every batch in val_data
                     for i in range(len(val_obs)):
                         val_accuracy += play_lmp.predict_eval(val_obs[i], val_imgs[i], val_acts[i])
                     val_accuracy /= len(val_obs)
+                    #Save only the best models
                     if(val_accuracy > best_val_accuracy):
                         best_val_accuracy = val_accuracy
                         file_name = "./models/model_b%d.pth"%batch
                         play_lmp.save(file_name)
+                    #Log to tensorboard
                     writer.add_scalar('Loss/train', training_error, batch)
                     writer.add_scalar('Accuracy/validation', val_accuracy, batch)
                     print("Batch: %d, training error: %.2f, validation accuracy: %.2f" % (batch, training_error, val_accuracy))

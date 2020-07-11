@@ -41,6 +41,8 @@ def preprocess_data(paths, window_size=16, batch_size=64, validation=False):
         t = 0
         while t + window_size <= n - 1: 
             if(validation):
+                #For validation data
+                #return: [current_img, goal_img] , current_obs, current_action
                 seq_obs.append(observations[t])
                 seq_imgs.append(np.array([images[t], images[t+window_size]]))
                 seq_acts.append(actions[t])

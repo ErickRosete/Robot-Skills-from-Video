@@ -3,7 +3,7 @@
 """
 Created on Tue Jun 30 20:02:01 2020
 
-@author: suresh, eric, jessica
+@author: suresh, erick, jessica
 """
 
 import utils.constants as constants
@@ -109,75 +109,3 @@ class PlanProposalNetwork(nn.Module):
         mean = self.mean_fc(x)
         variance = F.softplus(self.variance_fc(x))
         return mean, variance # shape: [N, 256]
-
-class PolicyNetwork(nn.Module):
-    def __init__(self, seq_len):
-        super(PolicyNetwork, self).__init__()
-        self.in_features = (constants.VISUAL_FEATURES + constants.N_DOF_ROBOT) + constants.VISUAL_FEATURES + constants.PLAN_FEATURES
-
-        self.rnn_model = nn.Sequential(
-            # unidirectional RNN
-            nn.RNN(input_size=self.in_features, hidden_size=2048, num_layers=2, nonlinearity='relu', bidirectional=False, batch_first=True)
-            ) # shape: [N, seq_len, 256 + 137]
-        self.seq_len = seq_len
-        self.linears = []
-        self.mean_fc = []
-        self.variance_fc = []
-        for i in range(self.seq_len):
-            self.linears.append(nn.Linear(in_features=2048, out_features=constants.N_DOF_ROBOT)) # shape: [N, seq_len, 2048]
-
-        self.mean_fc = nn.ModuleList(copy.deepcopy(self.linears))
-        self.variance_fc = nn.ModuleList(copy.deepcopy(self.linears))
-
-    def forward(self, x):
-        x, hn = self.rnn_model(x)
-        mean = []
-        variance = []
-        for i in range(self.seq_len):
-            mean.append(self.mean_fc[i](x[:, i]))
-            variance.append(F.softplus(self.variance_fc[i](x[:, i])))
-        return torch.stack(mean, 1), torch.stack(variance, 1) # shape: [N, seq_len, 9]
-
-
-if __name__ == '__main__':
-    # data = torch.zeros([2,64,33,33]).cuda()
-    # data[0,0,0,1] = 10
-    # data[0,1,1,1] = 10
-    # data[0,2,1,2] = 10
-    # network = SpatialSoftmax(33, 33)
-    # output = network(data)
-    # print(output.shape)
-
-    batch_size = 32
-    seq_len = 5 # K-length plan
-
-    data = torch.randn(batch_size, 3, 299, 299).cuda()
-    network = VisionNetwork().cuda()
-    output = network(data)
-    print('visual features: ',output.shape)
-    print('------------------')
-
-    #input of shape (batch, seq_len, input_size)
-    data = torch.randn(batch_size, seq_len, 73).cuda()
-    #h_0 of shape (num_layers * num_directions, batch, hidden_size)
-    network = PlanRecognitionNetwork().cuda()
-    mean, variance = network(data)
-    print('plan recognition mean: ',mean.shape)
-    print('plan recognition variance: ',variance.shape)
-    print('------------------')
-
-    data = torch.randn(batch_size, 137).cuda()
-    network = PlanProposalNetwork().cuda()
-    mean, variance = network(data)
-    print('plan proposal mean: ',mean.shape)
-    print('plan proposal variance: ',variance.shape)
-    print('------------------')
-
-
-    #input of shape (batch, seq_len, input_size)
-    data = torch.randn(batch_size, seq_len, 393).cuda()  # batch_size = 1
-    #h_0 of shape (num_layers * num_directions, batch, hidden_size)
-    network = PolicyNetwork(seq_len).cuda()
-    mean, variance = network(data)
-    print('policy mean: ',mean.shape)
-    print('policy variance: ',variance.shape)

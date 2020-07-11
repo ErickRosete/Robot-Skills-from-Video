@@ -1,11 +1,10 @@
-from network.plan_proposal_network import PlanProposalNetwork
-from network.plan_recognition_network import PlanRecognitionNetwork
-from network.action_decoder_network import ActionDecoderNetwork
-from network.vision_network import  VisionNetwork
+from networks import  VisionNetwork, PlanRecognitionNetwork, PlanProposalNetwork
+from action_decoder_network import ActionDecoderNetwork
 import torch
 import os
 import numpy as np
 import torch.optim as optim
+import torch.distributions as D
 
 class PlayLMP():
     def __init__(self, lr=2e-4, beta=0.01):
@@ -35,54 +34,71 @@ class PlayLMP():
     def to_tensor(self, array):
         return torch.tensor(array, dtype=torch.float, device="cuda")
 
+    #Forward + loss + backward
     def step(self, obs, imgs, acts):
         self.train_mode()
         b, s, c, h, w = imgs.shape
-        imgs = self.to_tensor(imgs).reshape(-1, c, h, w)
-        encoded_imgs = self.vision(imgs)
-        encoded_imgs = encoded_imgs.reshape(b, s, -1)
+        imgs = self.to_tensor(imgs).reshape(-1, c, h, w) #(batch_size * sequence_length, 3, 300, 300)
+
+        # ------------ Vision Network ------------ #
+        encoded_imgs = self.vision(imgs) #(batch*seq_len, 64)
+        encoded_imgs = encoded_imgs.reshape(b, s, -1) #(batch, seq, 64)
+           
+        # ------------Plan Proposal------------ #
+        #plan proposal input = cat(visuo_proprio, goals) = (batch, 137)
         obs = self.to_tensor(obs)
         pp_input = torch.cat([encoded_imgs[:, 0], obs[:,0], encoded_imgs[:,-1]], dim=-1)
-        pr_input = torch.cat([encoded_imgs, obs], dim=-1)
+        mu_p, sigma_p = self.plan_proposal(pp_input)#(batch, 256) each
+        pr_dist = Normal(mu_p, sigma_p)
 
-        pp_dist = self.plan_proposal(pp_input)
-        pr_dist = self.plan_recognition(pr_input)
-        kl_loss = torch.distributions.kl.kl_divergence(pp_dist, pr_dist).mean()
+        # ------------Plan Recognition------------ #
+        #plan proposal input = visuo_proprio =  (batch_size, sequence_length, 73)
+        pr_input = torch.cat([encoded_imgs, obs], dim=-1) 
+        mu_r, sigma_r = self.plan_recognition(pr_input)#(batch, 256) each
+        pr_dist = Normal(mu_r, sigma_r)
 
-        plan = pr_dist.rsample()
-        seq_size = pr_input.shape[1]
-        #plan = plan.unsqueeze(1).expand(-1, seq_size, -1)
-        #goal_img = encoded_imgs[:, -1].unsqueeze(1).expand(-1, seq_size, -1)
-        #action_input = torch.cat([pr_input, goal_img, plan], dim=-1)
-        action_input = torch.cat([pp_input, plan], dim=-1).unsqueeze(1)
+        # ------------ Policy network ------------ #
+        sampled_plan = pr_dist.rsample() #sample from recognition net
+        action_input = torch.cat([pp_input, sampled_plan], dim=-1).unsqueeze(1)
         alphas, variances, means= self.action_decoder(action_input)
         acts = self.to_tensor(acts[:, 0])
-        al_loss = self.action_decoder.loss(alphas, variances, means, acts)
-        total_loss = al_loss + self.beta * kl_loss
+        
+        # ------------ Loss ------------ #
+        kl_loss = D.kl_divergence(pp_dist, pr_dist).mean()
+        mix_loss = self.action_decoder.loss(alphas, variances, means, acts)
+        total_loss = mix_loss + self.beta * kl_loss
 
-        # Gradient step
+        # ------------ Backward pass ------------ #
         self.optimizer.zero_grad()
         total_loss.backward()
         self.optimizer.step()
 
         return total_loss
 
+    #eval forward, no grad
     def predict(self, obs, imgs):
         self.eval_mode()
         with torch.no_grad():
             b, s, c, h, w = imgs.shape
             imgs = self.to_tensor(imgs).reshape(-1, c, h, w)
+            # ------------ Vision Network ------------ #
             encoded_imgs = self.vision(imgs)
             encoded_imgs = encoded_imgs.reshape(b, s, -1)
+            
+            # ------------Plan Proposal------------ #
             obs = self.to_tensor(obs)
             pp_input = torch.cat([encoded_imgs[:, 0], obs, encoded_imgs[:,-1]], dim=-1)
             pp_dist = self.plan_proposal(pp_input)
-            plan = pp_dist.sample()
-            action_input = torch.cat([pp_input, plan], dim=-1).unsqueeze(1)
+            
+            # ------------ Policy network ------------ #
+            sampled_plan = pp_dist.sample() #sample from proposal net
+            action_input = torch.cat([pp_input, sampled_plan], dim=-1).unsqueeze(1)
             alphas, variances, means = self.action_decoder(action_input)
             action = self.action_decoder.sample(alphas, variances, means)
         return action
 
+    #Calls predict. Returns accuracy.
+    #inputs: numpy arrays (Batch, seq_len, dim)
     def predict_eval(self, obs, imgs, act):
         p_actions = self.predict(obs, imgs).cpu().detach().numpy().squeeze()
         accuracy = np.mean(np.isclose(p_actions, act, atol=0.2))
