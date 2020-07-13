@@ -9,17 +9,16 @@ import torch.distributions as D
 from torch.distributions.normal import Normal
 
 class PlayLMP():
-    def __init__(self, lr=2e-4, beta=0.01):
+    def __init__(self, lr=2e-4, beta=0.01, num_gaussians=5):
         super(PlayLMP, self).__init__()
         self.plan_proposal = PlanProposalNetwork().cuda()
         self.plan_recognition = PlanRecognitionNetwork().cuda()
-        self.action_decoder = ActionDecoderNetwork().cuda()
+        self.action_decoder = ActionDecoderNetwork(num_gaussians).cuda()
         self.vision = VisionNetwork().cuda()
         params = list(self.plan_proposal.parameters()) + list(self.plan_recognition.parameters()) \
                  + list(self.action_decoder.parameters()) + list(self.vision.parameters())
         self.optimizer = optim.Adam(params, lr=lr)
         self.beta = beta
-
 
     def train_mode(self):
         self.vision.train()
@@ -35,6 +34,23 @@ class PlayLMP():
 
     def to_tensor(self, array):
         return torch.tensor(array, dtype=torch.float, device="cuda")
+
+    def get_pp_plan(self, obs, imgs):
+        self.eval_mode()
+        with torch.no_grad():
+            b, s, c, h, w = imgs.shape
+            imgs = self.to_tensor(imgs).reshape(-1, c, h, w)
+            # ------------ Vision Network ------------ #
+            encoded_imgs = self.vision(imgs)
+            encoded_imgs = encoded_imgs.reshape(b, s, -1)
+            
+            # ------------Plan Proposal------------ #
+            obs = self.to_tensor(obs)
+            pp_input = torch.cat([encoded_imgs[:, 0], obs, encoded_imgs[:,-1]], dim=-1)
+            mu_p, sigma_p = self.plan_proposal(pp_input)#(batch, 256) each
+            pp_dist = Normal(mu_p, sigma_p)
+            sampled_plan = pp_dist.sample() 
+        return sampled_plan
 
     #Forward + loss + backward
     def step(self, obs, imgs, acts):
