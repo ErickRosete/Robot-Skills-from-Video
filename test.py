@@ -78,14 +78,14 @@ def init_env(env, data_file):
 
 def test_model():
     #load goal
-    goal_path = "./data/goals/friday_microwave_kettle_topknob_hinge_0_path_img_13.png"
+    goal_path = "./data/goals/friday_microwave_kettle_topknob_hinge_0_path_img_16.png"
     goal = plt.imread(goal_path) #read as RGB, blue shelfs
     plt.imshow(goal)
     plt.show()
 
     #model init
     model = PlayLMP(constants.LEARNING_RATE, constants.BETA, constants.NUM_GAUSSIANS)
-    model.load("./models/model_b64100.pth")
+    model.load("./models/model_b62880.pth")
 
     #Env init
     env = gym.make('kitchen_relax-v1')
@@ -94,14 +94,19 @@ def test_model():
     #data_file = "./data/fit_v/friday_kettle_bottomknob_hinge_slide_22_path.pkl"
     #init_env(env, data_file)
 
-    for i in range(5000):
+    for i in range(180):
         curr_img = env.render(mode='rgb_array')
         curr_img = cv2.resize(curr_img , (300,300))
 
+        #goal_path = "./data/goals/friday_microwave_kettle_topknob_hinge_0_path_img_%d.png" % (i+16)
+        #goal = plt.imread(goal_path) #read as RGB, blue shelfs
         current_and_goal = np.stack((curr_img, goal) , axis=0) #(2, 300, 300, 3)
         current_and_goal = np.expand_dims(current_and_goal.transpose(0,3,1,2), axis=0) #(1, 2, 3, 300, 300)
         current_obs = np.expand_dims(s[:9], axis=0) #(1,9)
         #prediction
+        #if(i % 30 == 0):
+        #    plan = model.get_pp_plan(current_obs,current_and_goal)
+        #action = model.predict_with_plan(current_obs, current_and_goal, plan).squeeze(0) #(9)
         action = model.predict(current_obs, current_and_goal).squeeze(0) #(9)
         s , r, _, _ = env.step(action.cpu().detach().numpy())
         env.render()

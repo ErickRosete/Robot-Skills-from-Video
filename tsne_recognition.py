@@ -31,7 +31,7 @@ def save_imgs(labels, images, skip_frames=0, save_dir ="./results/recognition_cl
             cv2.imwrite(save_path, cv2.cvtColor(img, cv2.COLOR_RGB2BGR)) #save as blue shelfs
 
 def compute_tsne(batch_size = 32, method = "pp", save_name = "clusters",\
-                 show=False, n_filenames=5, plot_n_batches = 1, model_path = "./models/model_b11600.pth"):
+                 show=False, n_filenames=5, plot_n_batches = 1, model_path = "./models/model_b62880.pth"):
     #Load data and transform into sequences
     file_names = get_filenames("./data/validation")[:n_filenames]
     validation_paths = load_data(file_names)
