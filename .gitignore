@@ -6,3 +6,5 @@ __pycache__/
 relay-policy-learning/
 puppet/
 mjrl/
+results/
+models/

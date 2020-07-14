@@ -5,13 +5,11 @@ import utils.constants as constants
 
 if __name__ == "__main__":
     # ------------ Initialization ------------ #
-    #Network
     writer = SummaryWriter()
-    play_lmp = PlayLMP()
+    play_lmp = PlayLMP(constants.LEARNING_RATE, constants.BETA, constants.NUM_GAUSSIANS)
     #play_lmp.load("./models/model_b4780.pth")
     
     # ------------ Hyperparams ------------ #
-    #Hyperparameters
     epochs = constants.N_EPOCH
     window_size = constants.WINDOW_SIZE
     val_batch_size = constants.VAL_BATCH_SIZE
@@ -20,7 +18,7 @@ if __name__ == "__main__":
     eval_freq = constants.EVAL_FREQ #validate every eval_freq batches
 
     # ------------ Validation data loading ------------ #
-    #Validation data
+    # Validation data
     validation_paths = read_data("./data/validation")
     val_obs, val_imgs, val_acts = preprocess_data(validation_paths, window_size, val_batch_size, True)
     #Note when preprocesing validation data we return 
@@ -49,7 +47,7 @@ if __name__ == "__main__":
             # ------------ Batch training loop ------------ #
             while len(train_obs) > 0:
                 batch_obs, batch_imgs, batch_acts = train_obs.pop(), train_imgs.pop(), train_acts.pop()
-                #STEP
+                # STEP
                 training_error = play_lmp.step(batch_obs, batch_imgs, batch_acts)
                 
                 # ------------ Evaluation ------------ #

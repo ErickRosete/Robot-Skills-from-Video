@@ -5,6 +5,7 @@ import gzip
 import matplotlib.pyplot as plt
 import glob
 
+#Load data from specific packages
 def load_data(file_names):
     paths = []
     for data_file in file_names:
@@ -20,6 +21,7 @@ def load_data(file_names):
         paths.append(path)
     return paths
 
+#Load data from ALL packages in a folder
 def read_data(datasets_dir="./data/training"):
     name_str = os.path.basename(os.path.normpath(datasets_dir))
     print("Read %s data ..."%name_str)
@@ -54,10 +56,10 @@ def preprocess_data(paths, window_size=16, batch_size=64, validation=False):
             t += 1
     
     #List -> numpy array
-    seq_obs = np.stack(seq_obs, axis=0) #T = B, S, O / V = B, O
+    seq_obs = np.stack(seq_obs, axis=0) #Train = B, S, O | Val = B, O
     seq_imgs = np.stack(seq_imgs, axis=0) #B, S, H, W, C
     seq_imgs = np.transpose(seq_imgs, (0, 1, 4, 2, 3)) #B, S, C, H, W
-    seq_acts = np.stack(seq_acts, axis=0) #T = B, S, A / V = B, A
+    seq_acts = np.stack(seq_acts, axis=0) #Train = B, S, A | Val = B, A
 
     #Shuffle inds
     inds = np.arange(seq_obs.shape[0])

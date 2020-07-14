@@ -10,6 +10,7 @@ import gym
 import sys
 sys.path.append("./relay-policy-learning/adept_envs/")
 import adept_envs
+import utils.constants as constants
 
 
 def print_img_goals(data_dir="./data/validation/", save_folder = "./data/goals/", i=0, n_packages=1, load_all = False):
@@ -20,19 +21,20 @@ def print_img_goals(data_dir="./data/validation/", save_folder = "./data/goals/"
     print(data_files)
 
     data_img = []
-    for i,file in enumerate(data_files):
-        #load images of file
-        with open(file, 'rb') as f:
-            if(i==0):
-                data_img = pickle.load(f)['images']
-            else:
-                data_img = np.concatenate(pickle.load(f)['images'], axis=0)
-        for i,img in enumerate(data_img):
-            try:
-                save_path = save_folder + os.path.basename(file)[:-4] +"_img_"+str(i)+".png"
-                cv2.imwrite(save_path, cv2.cvtColor(img, cv2.COLOR_RGB2BGR)) #save as blue shelfs
-            except Exception as e:
-                print(e)        
+    try:
+        for i, file in enumerate(data_files):
+            #load images of file
+            with open(file, 'rb') as f:
+                if(i==0):
+                    data_img = pickle.load(f)['images']
+                else:
+                    data_img = np.concatenate(pickle.load(f)['images'], axis=0)
+            for i,img in enumerate(data_img):
+                    save_path = save_folder + os.path.basename(file)[:-4] +"_img_"+str(i)+".png"
+                    cv2.imwrite(save_path, cv2.cvtColor(img, cv2.COLOR_RGB2BGR)) #save as blue shelfs
+    except Exception as e:
+        print(e)      
+
     print("done!")
 
 def load_actions_data(file_names):
@@ -66,6 +68,14 @@ def reproduce_actions(file_names):
         s , r, _, _ = env.step(action)
         env.render()
 
+def init_env(env, data_file):
+    if os.path.getsize(data_file) > 0:   #Check if the file is not empty   
+        with open(data_file, 'rb') as f:
+            data = pickle.load(f) 
+            env.sim.data.qpos[:] = data['init_qpos']
+            env.sim.data.qvel[:] = data['init_qvel']
+            env.sim.forward()
+
 def test_model():
     #load goal
     goal_path = "./data/goals/friday_microwave_kettle_topknob_hinge_0_path_img_13.png"
@@ -74,20 +84,16 @@ def test_model():
     plt.show()
 
     #model init
-    model = PlayLMP()
-    model.load("./models/model_b4780.pth")
-
-    # prepare env
-    # each package has a init pos and vel
-    # init_qpos = data['qpos'][0].copy()
-    # init_qvel = data['qvel'][0].copy()
-    # env.sim.data.qpos[:] = init_qpos
-    # env.sim.data.qvel[:] = init_qvel
-    # env.sim.forward()
+    model = PlayLMP(constants.LEARNING_RATE, constants.BETA, constants.NUM_GAUSSIANS)
+    model.load("./models/model_b64100.pth")
 
     #Env init
     env = gym.make('kitchen_relax-v1')
     s = env.reset()
+
+    #data_file = "./data/fit_v/friday_kettle_bottomknob_hinge_slide_22_path.pkl"
+    #init_env(env, data_file)
+
     for i in range(5000):
         curr_img = env.render(mode='rgb_array')
         curr_img = cv2.resize(curr_img , (300,300))
