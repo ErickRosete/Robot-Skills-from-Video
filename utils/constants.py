@@ -7,6 +7,7 @@ Created on Tue Jun 30 20:02:01 2020
 N_DOF_ROBOT = 9 # From kitchen_multitask_v0.py
 VISUAL_FEATURES = 64
 PLAN_FEATURES = 256
+N_MIX = 10
 
 # ------------ Training constants  ------------ #
 N_EPOCH = 20

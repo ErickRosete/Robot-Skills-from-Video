@@ -1,5 +1,5 @@
 #import from training dir
-from networks.networks import  VisionNetwork, PlanRecognitionNetwork, PlanProposalNetwork
+from networks.networks import  VisionNetwork, PlanRecognitionNetwork, PlanProposalNetwork, LogisticPolicyNetwork
 from networks.action_decoder_network import ActionDecoderNetwork
 from networks.gaussian_policy_network import GaussianPolicyNetwork
 import torch
@@ -8,15 +8,19 @@ import numpy as np
 import torch.optim as optim
 import torch.distributions as D
 from torch.distributions.normal import Normal
+import utils.mixture as mixtures
 
 class PlayLMP():
-    def __init__(self, lr=2e-4, beta=0.01, num_gaussians=5):
+    def __init__(self, lr=2e-4, beta=0.01, num_gaussians=5, use_logistics=False):
         super(PlayLMP, self).__init__()
         self.plan_proposal = PlanProposalNetwork().cuda()
         self.plan_recognition = PlanRecognitionNetwork().cuda()
         self.vision = VisionNetwork().cuda()
         self.num_gaussians = num_gaussians
-        if(num_gaussians > 1):
+        self.use_logistics = use_logistics
+        if use_logistics:
+            self.action_decoder = LogisticPolicyNetwork().cuda() #default n_mix = 10
+        elif(num_gaussians > 1):
             self.action_decoder = ActionDecoderNetwork(num_gaussians).cuda()
         else:
             self.action_decoder = GaussianPolicyNetwork(num_gaussians).cuda()
@@ -30,7 +34,7 @@ class PlayLMP():
         self.plan_proposal.train()
         self.plan_recognition.train()
         self.action_decoder.train()
-    
+
     def eval_mode(self):
         self.vision.eval()
         self.plan_proposal.eval()
@@ -50,18 +54,18 @@ class PlayLMP():
             # ------------ Vision Network ------------ #
             encoded_imgs = self.vision(imgs)
             encoded_imgs = encoded_imgs.reshape(b, s, -1)
-            
+
             # ------------Plan Proposal------------ #
             obs = self.to_tensor(obs)
             pp_input = torch.cat([encoded_imgs[:, 0], obs, encoded_imgs[:,-1]], dim=-1)
             mu_p, sigma_p = self.plan_proposal(pp_input)#(batch, 256) each
             pp_dist = Normal(mu_p, sigma_p)
-            sampled_plan = pp_dist.sample() 
+            sampled_plan = pp_dist.sample()
         return sampled_plan
 
     def get_pr_plan(self, obs, imgs):
         #inputs are np arrays
-        #obs = (batch_size, seq_len, 9) 
+        #obs = (batch_size, seq_len, 9)
         #imgs = (batch_size, seq_len , 3, 300, 300)
         self.eval_mode()
         with torch.no_grad():
@@ -70,14 +74,14 @@ class PlayLMP():
             # ------------ Vision Network ------------ #
             encoded_imgs = self.vision(imgs)
             encoded_imgs = encoded_imgs.reshape(b, s, -1)
-            
+
             # ------------Plan Recognition------------ #
             #plan recognition input = visuo_proprio =  (batch_size, sequence_length, 73)
             obs = self.to_tensor(obs)
             pr_input = torch.cat([encoded_imgs, obs], dim=-1)
             mu_p, sigma_p = self.plan_recognition(pr_input)#(batch, 256) each
             pr_dist = Normal(mu_p, sigma_p)
-            sampled_plan = pr_dist.sample() 
+            sampled_plan = pr_dist.sample()
         return sampled_plan
 
     #Forward + loss + backward
@@ -89,7 +93,7 @@ class PlayLMP():
         # ------------ Vision Network ------------ #
         encoded_imgs = self.vision(imgs) #(batch*seq_len, 64)
         encoded_imgs = encoded_imgs.reshape(b, s, -1) #(batch, seq, 64)
-           
+
         # ------------Plan Proposal------------ #
         #plan proposal input = cat(visuo_proprio, goals) = (batch, 137)
         obs = self.to_tensor(obs)
@@ -99,14 +103,16 @@ class PlayLMP():
 
         # ------------Plan Recognition------------ #
         #plan proposal input = visuo_proprio =  (batch_size, sequence_length, 73)
-        pr_input = torch.cat([encoded_imgs, obs], dim=-1) 
+        pr_input = torch.cat([encoded_imgs, obs], dim=-1)
         mu_r, sigma_r = self.plan_recognition(pr_input)#(batch, 256) each
         pr_dist = Normal(mu_r, sigma_r)
 
         # ------------ Policy network ------------ #
         sampled_plan = pr_dist.rsample() #sample from recognition net
         action_input = torch.cat([pp_input, sampled_plan], dim=-1).unsqueeze(1)
-        if(self.num_gaussians > 1):
+        if self.use_logistics:
+            logit_probs, scales, means = self.action_decoder(action_input)
+        elif(self.num_gaussians > 1):
             alphas, variances, means= self.action_decoder(action_input)
         else:
             mean, variance = self.action_decoder(action_input)
@@ -114,7 +120,11 @@ class PlayLMP():
 
         # ------------ Loss ------------ #
         kl_loss = D.kl_divergence(pp_dist, pr_dist).mean()
-        if(self.num_gaussians > 1):
+        if self.use_logistics:
+            prediction = torch.cat([logit_probs, means, scales], dim=1)
+            target = acts.unsqueeze(2)
+            mix_loss = mixtures.discretized_mix_logistic_loss(target, prediction, reduce=True)
+        elif(self.num_gaussians > 1):
             mix_loss = self.action_decoder.loss(alphas, variances, means, acts)
         else:
             mix_loss = self.action_decoder.loss(mean, variance, acts)
@@ -136,24 +146,28 @@ class PlayLMP():
             # ------------ Vision Network ------------ #
             encoded_imgs = self.vision(imgs)
             encoded_imgs = encoded_imgs.reshape(b, s, -1)
-            
+
             # ------------Plan Proposal------------ #
             obs = self.to_tensor(obs)
             pp_input = torch.cat([encoded_imgs[:, 0], obs, encoded_imgs[:,-1]], dim=-1)
             mu_p, sigma_p = self.plan_proposal(pp_input)#(batch, 256) each
             pp_dist = Normal(mu_p, sigma_p)
-            
+
             # ------------ Policy network ------------ #
             sampled_plan = pp_dist.sample() #sample from proposal net
             action_input = torch.cat([pp_input, sampled_plan], dim=-1).unsqueeze(1)
-            if(self.num_gaussians > 1):
+            if self.use_logistics:
+                logit_probs, scales, means = self.action_decoder(action_input)
+                prediction = torch.cat([logit_probs, means, scales], dim=1)
+                action = mixtures.sample_from_discretized_mix_logistic(prediction)
+            elif(self.num_gaussians > 1):
                 alphas, variances, means= self.action_decoder(action_input)
                 action = self.action_decoder.sample(alphas, variances, means)
             else:
                 mean, variance = self.action_decoder(action_input)
                 action = self.action_decoder.sample(mean, variance)
         return action
-    
+
     #Calls predict. Returns accuracy.
     #inputs: numpy arrays (Batch, seq_len, dim)
     def predict_eval(self, obs, imgs, act):
@@ -168,13 +182,16 @@ class PlayLMP():
             # ------------ Vision Network ------------ #
             encoded_imgs = self.vision(imgs)
             encoded_imgs = encoded_imgs.reshape(b, s, -1)
-            
+
             # ------------Plan Proposal------------ #
             obs = self.to_tensor(obs)
             pp_input = torch.cat([encoded_imgs[:, 0], obs, encoded_imgs[:,-1]], dim=-1)
             action_input = torch.cat([pp_input, plan], dim=-1).unsqueeze(1)
-
-            if(self.num_gaussians > 1):
+            if self.use_logistics:
+                logit_probs, scales, means = self.action_decoder(action_input)
+                prediction = torch.cat([logit_probs, means, scales], dim=1)
+                action = mixtures.sample_from_discretized_mix_logistic(prediction)
+            elif(self.num_gaussians > 1):
                 alphas, variances, means= self.action_decoder(action_input)
                 action = self.action_decoder.sample(alphas, variances, means)
             else:

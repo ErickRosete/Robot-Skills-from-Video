@@ -39,7 +39,7 @@ class VisionNetwork(nn.Module):
     def forward(self, x):
         x = self.conv_model(x)
         return x # shape: [N, 64]
-    
+
     def calc_out_size(self,w,h,kernel_size,padding,stride):
         width = (w - kernel_size +2*padding)//stride + 1
         height = (h - kernel_size +2*padding)//stride + 1
@@ -118,3 +118,33 @@ class PlanProposalNetwork(nn.Module):
         mean = self.mean_fc(x)
         variance = F.softplus(self.variance_fc(x))
         return mean, variance # shape: [N, 256]
+
+class LogisticPolicyNetwork(nn.Module):
+    def __init__(self, n_mix=constants.N_MIX):
+        super(LogisticPolicyNetwork, self).__init__()
+        self.in_features = (utils.VISUAL_FEATURES + utils.N_DOF_ROBOT) + utils.VISUAL_FEATURES + utils.PLAN_FEATURES
+
+        self.n_mix = n_mix
+        self.linears = []
+        self.rnn_model = nn.Sequential(
+            # unidirectional RNN
+            nn.RNN(input_size=self.in_features, hidden_size=2048, num_layers=2, nonlinearity='relu', bidirectional=False, batch_first=True)
+            ) # shape: [N, seq_len, 256 + 137]
+
+        for i in range(self.n_mix):
+            self.linears.append(nn.Linear(in_features=2048, out_features=utils.N_DOF_ROBOT)) # shape: [N, n_mix, 2048]
+
+        self.mean_fc = nn.ModuleList(copy.deepcopy(self.linears))
+        self.scale_fc = nn.ModuleList(copy.deepcopy(self.linears))
+        self.logit_probs_fc = nn.ModuleList(copy.deepcopy(self.linears))
+
+    def forward(self, x):
+        x, hn = self.rnn_model(x)
+        means = []
+        scales = []
+        logit_probs = []
+        for i in range(self.n_mix):
+            means.append(self.mean_fc[i](x))
+            scales.append(F.softplus(self.scale_fc[i](x)))
+            logit_probs.append(F.softplus(self.logit_probs_fc[i](x)))
+        return torch.cat(logit_probs, 1), torch.cat(scales, 1), torch.cat(means, 1) # shape: [N, n_mix, 9] * 3

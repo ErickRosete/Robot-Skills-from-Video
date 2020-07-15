@@ -156,14 +156,14 @@ def sample_from_discretized_mix_logistic(y, n_mix = 10, log_scale_min=-7., clamp
 if __name__ == '__main__':
     BATCH_SIZE = 32
     N_DOF_ROBOT = 9
-    n_mix = 10
+    N_MIX = 10
 
-    y = torch.rand(BATCH_SIZE, 3 * n_mix, N_DOF_ROBOT)#.cuda()
+    y = torch.rand(BATCH_SIZE, 3 * N_MIX, N_DOF_ROBOT)#.cuda()
     sample = sample_from_discretized_mix_logistic(y)
     print(sample)
     
-    l = torch.rand(BATCH_SIZE, 3 * n_mix, N_DOF_ROBOT)#.cuda()
-    x = torch.rand(BATCH_SIZE, N_DOF_ROBOT, 1)#.cuda()
-    loss = discretized_mix_logistic_loss(x, l, num_classes=256, log_scale_min=-7.0)
+    prediction = torch.rand(BATCH_SIZE, 3 * N_MIX, N_DOF_ROBOT)#.cuda()
+    target = torch.rand(BATCH_SIZE, N_DOF_ROBOT, 1)#.cuda()
+    loss = discretized_mix_logistic_loss(target, prediction, num_classes=256, log_scale_min=-7.0)
     print(loss)
     
