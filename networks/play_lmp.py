@@ -11,19 +11,19 @@ from torch.distributions.normal import Normal
 import utils.mixture as mixtures
 
 class PlayLMP():
-    def __init__(self, lr=2e-4, beta=0.01, num_gaussians=5, use_logistics=False):
+    def __init__(self, lr=2e-4, beta=0.01, num_mixtures=5, use_logistics=False):
         super(PlayLMP, self).__init__()
         self.plan_proposal = PlanProposalNetwork().cuda()
         self.plan_recognition = PlanRecognitionNetwork().cuda()
         self.vision = VisionNetwork().cuda()
-        self.num_gaussians = num_gaussians
+        self.num_mixtures = num_mixtures
         self.use_logistics = use_logistics
         if use_logistics:
-            self.action_decoder = LogisticPolicyNetwork().cuda() #default n_mix = 10
-        elif(num_gaussians > 1):
-            self.action_decoder = ActionDecoderNetwork(num_gaussians).cuda()
+            self.action_decoder = LogisticPolicyNetwork(num_mixtures).cuda() #default n_mix = 10
+        elif(num_mixtures > 1):
+            self.action_decoder = ActionDecoderNetwork(num_mixtures).cuda()
         else:
-            self.action_decoder = GaussianPolicyNetwork(num_gaussians).cuda()
+            self.action_decoder = GaussianPolicyNetwork().cuda()
         params = list(self.plan_proposal.parameters()) + list(self.plan_recognition.parameters()) \
                  + list(self.action_decoder.parameters()) + list(self.vision.parameters())
         self.optimizer = optim.Adam(params, lr=lr)
@@ -112,7 +112,7 @@ class PlayLMP():
         action_input = torch.cat([pp_input, sampled_plan], dim=-1).unsqueeze(1)
         if self.use_logistics:
             logit_probs, scales, means = self.action_decoder(action_input)
-        elif(self.num_gaussians > 1):
+        elif(self.num_mixtures > 1):
             alphas, variances, means= self.action_decoder(action_input)
         else:
             mean, variance = self.action_decoder(action_input)
@@ -124,7 +124,7 @@ class PlayLMP():
             prediction = torch.cat([logit_probs, means, scales], dim=1)
             target = acts.unsqueeze(2)
             mix_loss = mixtures.discretized_mix_logistic_loss(target, prediction, reduce=True)
-        elif(self.num_gaussians > 1):
+        elif(self.num_mixtures > 1):
             mix_loss = self.action_decoder.loss(alphas, variances, means, acts)
         else:
             mix_loss = self.action_decoder.loss(mean, variance, acts)
@@ -160,7 +160,7 @@ class PlayLMP():
                 logit_probs, scales, means = self.action_decoder(action_input)
                 prediction = torch.cat([logit_probs, means, scales], dim=1)
                 action = mixtures.sample_from_discretized_mix_logistic(prediction)
-            elif(self.num_gaussians > 1):
+            elif(self.num_mixtures > 1):
                 alphas, variances, means= self.action_decoder(action_input)
                 action = self.action_decoder.sample(alphas, variances, means)
             else:
@@ -191,7 +191,7 @@ class PlayLMP():
                 logit_probs, scales, means = self.action_decoder(action_input)
                 prediction = torch.cat([logit_probs, means, scales], dim=1)
                 action = mixtures.sample_from_discretized_mix_logistic(prediction)
-            elif(self.num_gaussians > 1):
+            elif(self.num_mixtures > 1):
                 alphas, variances, means= self.action_decoder(action_input)
                 action = self.action_decoder.sample(alphas, variances, means)
             else:

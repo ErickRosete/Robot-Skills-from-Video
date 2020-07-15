@@ -6,7 +6,8 @@ import utils.constants as constants
 if __name__ == "__main__":
     # ------------ Initialization ------------ #
     writer = SummaryWriter()
-    play_lmp = PlayLMP(constants.LEARNING_RATE, constants.BETA, constants.NUM_GAUSSIANS)
+    play_lmp = PlayLMP(constants.LEARNING_RATE, constants.BETA, \
+                       constants.N_MIXTURES, constants.USE_LOGISTICS)
     #play_lmp.load("./models/model_b4780.pth")
     
     # ------------ Hyperparams ------------ #

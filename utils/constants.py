@@ -7,7 +7,8 @@ Created on Tue Jun 30 20:02:01 2020
 N_DOF_ROBOT = 9 # From kitchen_multitask_v0.py
 VISUAL_FEATURES = 64
 PLAN_FEATURES = 256
-N_MIX = 10
+USE_LOGISTICS = True
+N_MIXTURES = 10
 
 # ------------ Training constants  ------------ #
 N_EPOCH = 20
@@ -18,4 +19,3 @@ FILES_TO_LOAD = 5 # Files to load during training simultaneously
 EVAL_FREQ = 20 # Validate every eval_freq batches
 LEARNING_RATE = 2e-4
 BETA = 0.01
-NUM_GAUSSIANS = 1

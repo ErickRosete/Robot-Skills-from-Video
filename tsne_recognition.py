@@ -42,7 +42,8 @@ def compute_tsne(batch_size = 32, method = "pp", save_name = "clusters",\
     #print("Observation shape", data_obs[0].shape)
 
     #initialize model
-    model = PlayLMP(constants.LEARNING_RATE, constants.BETA, constants.NUM_GAUSSIANS)
+    model = PlayLMP(constants.LEARNING_RATE, constants.BETA, \
+                    constants.N_MIXTURES, constants.USE_LOGISTICS)
     model.load(model_path)
 
     X = []

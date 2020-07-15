@@ -84,7 +84,8 @@ def test_model():
     plt.show()
 
     #model init
-    model = PlayLMP(constants.LEARNING_RATE, constants.BETA, constants.NUM_GAUSSIANS)
+    model = PlayLMP(constants.LEARNING_RATE, constants.BETA, \
+                       constants.N_MIXTURES, constants.USE_LOGISTICS)
     model.load("./models/model_b62880.pth")
 
     #Env init

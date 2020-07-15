@@ -4,8 +4,8 @@ import torch.nn.functional as F
 from torch.distributions.normal import Normal
 
 class GaussianPolicyNetwork(nn.Module):
-    def __init__(self, k=5):
-        super(GaussianPolicyNetwork,self).__init__()
+    def __init__(self):
+        super(GaussianPolicyNetwork, self).__init__()
         input_size, hidden_size, out_features = 393, 2048, 9
         self.fc1 = nn.Linear(input_size, hidden_size)
         self.fc2 = nn.Linear(hidden_size, hidden_size)
