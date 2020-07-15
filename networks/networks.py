@@ -122,7 +122,7 @@ class PlanProposalNetwork(nn.Module):
 class LogisticPolicyNetwork(nn.Module):
     def __init__(self, n_mix=constants.N_MIX):
         super(LogisticPolicyNetwork, self).__init__()
-        self.in_features = (utils.VISUAL_FEATURES + utils.N_DOF_ROBOT) + utils.VISUAL_FEATURES + utils.PLAN_FEATURES
+        self.in_features = (constants.VISUAL_FEATURES + constants.N_DOF_ROBOT) + constants.VISUAL_FEATURES + constants.PLAN_FEATURES
 
         self.n_mix = n_mix
         self.linears = []
@@ -132,7 +132,7 @@ class LogisticPolicyNetwork(nn.Module):
             ) # shape: [N, seq_len, 256 + 137]
 
         for i in range(self.n_mix):
-            self.linears.append(nn.Linear(in_features=2048, out_features=utils.N_DOF_ROBOT)) # shape: [N, n_mix, 2048]
+            self.linears.append(nn.Linear(in_features=2048, out_features=constants.N_DOF_ROBOT)) # shape: [N, n_mix, 2048]
 
         self.mean_fc = nn.ModuleList(copy.deepcopy(self.linears))
         self.scale_fc = nn.ModuleList(copy.deepcopy(self.linears))
