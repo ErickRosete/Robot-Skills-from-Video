@@ -112,6 +112,7 @@ def reproduce_file_actions(load_file, save_folder = "./analysis/videos/reproduce
         if not os.path.exists(save_folder):
                 os.makedirs(save_folder)
         viewer(env, mode='save', filename=save_folder + save_filename)
+    env.close()
 
 #model is the already loaded model
 #new_plan is the number of iterations that we wait before sampling a new plan
@@ -159,16 +160,17 @@ def test_model(model, goal_path, show_goal=False, env_steps = 1000, new_plan_fre
     if(save_video):
         if not os.path.exists(save_folder):
             os.makedirs(save_folder)
-    viewer(env, mode='save', filename=save_folder + save_filename)
+        viewer(env, mode='save', filename=save_folder + save_filename)
+    env.close()
 
 def test():
     #model init
     model = PlayLMP(constants.LEARNING_RATE, constants.BETA, \
                       num_mixtures=1, use_logistics=False)
-    model.load("./models/model_b62880.pth")
+    model.load("./models/model_b23960.pth")
     #test
-    goal_file = "./data/goals/friday_microwave_kettle_topknob_hinge_0_path_img_50.png"
-    test_model(model, goal_file, env_steps=300, new_plan_frec=1, save_video=True, show_video = False, save_filename="MKTH.mp4")
+    goal_file = "./data/goals/grip_microwave.png"
+    test_model(model, goal_file, env_steps=500, new_plan_frec=30, save_video=False, show_video=True, save_filename="MKTH.mp4")
 
 if __name__ == '__main__':
     test()
