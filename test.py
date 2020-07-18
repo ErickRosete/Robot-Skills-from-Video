@@ -11,8 +11,23 @@ import sys
 sys.path.append("./relay-policy-learning/adept_envs/")
 import adept_envs
 import utils.constants as constants
+import skvideo.io
 
+#Load actions from .pkl file. Use absolute path including extension name
+def load_actions_data(file_name):
+    path = {'actions': [], 'init_qpos':[], 'init_qvel':[]} #Only retrieve this keys
+    if os.path.getsize(data_file) > 0:   #Check if the file is not empty   
+        with open(file_name, 'rb') as f:
+            data = pickle.load(f) 
+            for key in path.keys():
+                if key == "observations":
+                    path[key] = data[key][:, :9]
+                else:    
+                    path[key] = data[key]
+    return path
 
+#Print imgs from validation packages. Use i to select the nth package.
+#n_packages to select how many packages to load (i.e, val_data[i:i+n_packages])
 def print_img_goals(data_dir="./data/validation/", save_folder = "./data/goals/", i=0,\
                      n_packages=1, load_all = False):
     data_files = glob.glob(data_dir + "*.pkl")
@@ -38,48 +53,77 @@ def print_img_goals(data_dir="./data/validation/", save_folder = "./data/goals/"
 
     print("done!")
 
-def load_actions_data(file_names):
-    paths = []
-    for data_file in file_names:
-        path = {'actions': [], 'init_qpos':[], 'init_qvel':[]} #Only retrieve this keys
-        if os.path.getsize(data_file) > 0:   #Check if the file is not empty   
-            with open(data_file, 'rb') as f:
-                data = pickle.load(f) 
-                for key in path.keys():
-                    if key == "observations":
-                        path[key] = data[key][:, :9]
-                    else:    
-                        path[key] = data[key]
-        paths.append(path)
-    return paths
+#init environment with pos and vel from given file
+def init_env(env, file_name):
+    if os.path.getsize(data_file) > 0:   #Check if the file is not empty   
+        with open(file_name, 'rb') as f:
+            data = pickle.load(f) 
+            env.sim.data.qpos[:] = data['init_qpos'].copy()
+            env.sim.data.qvel[:] = data['init_qpos'].copy()
+            env.sim.forward()
+    return env
 
-def reproduce_file_actions(file_names, render=False):
-    data = load_actions_data(file_names)[0]#load first package
+#Proxy function to either save or render a model
+def viewer(env, mode='initialize', filename='video'):
+    global render_buffer
+    if mode == 'initialize':
+        render_buffer = []
+        mode = 'render'
+
+    if mode == 'render':
+        curr_frame = env.render(mode='rgb_array')
+        render_buffer.append(curr_frame)
+
+    if mode == 'save':
+        skvideo.io.vwrite(filename, np.asarray(render_buffer))
+        print("\noffscreen buffer saved", filename)
+
+#Reproduced saved actions from file in the env. Optionally save a video.
+#Load file should include file path + filename + extension
+#save_filename is the name for the video to be saved. It is stored under './data/videos/'
+def reproduce_file_actions(load_file, save_filename = "video.mp4", show_video=True, save=False):
+    data = load_actions_data(load_file)[0]#load first package
     #Env init
     gym_env = gym.make('kitchen_relax-v1')
     env = gym_env.env
     s = env.reset()
 
     # prepare env
-    init_qpos = data['init_qpos'].copy()
-    init_qvel = data['init_qvel'].copy()
-    env.sim.data.qpos[:] = init_qpos
-    env.sim.data.qvel[:] = init_qvel
+    env.sim.data.qpos[:] = data['init_qpos'].copy()
+    env.sim.data.qvel[:] = data['init_qpos'].copy()
     env.sim.forward()
+
+    #Viewer
+    FPS = 30
+    render_skip = max(1, round(1. / \
+        (FPS * env.sim.model.opt.timestep * env.frame_skip)))
+    viewer(env, mode='initialize')
+
     for action in data['actions']:
         s , r, _, _ = env.step(action)
-        env.render()
+        if(show_video):
+            if i_frame % render_skip == 0:
+                viewer(env, mode='render')
+                print(i_frame, end=', ', flush=True)
+    
+    if(save):
+        save_path = "./data/videos/" + save_filename
+        viewer(env, mode='save', filename=save_filename)
 
-def init_env(env, data_file):
-    if os.path.getsize(data_file) > 0:   #Check if the file is not empty   
-        with open(data_file, 'rb') as f:
-            data = pickle.load(f) 
-            env.sim.data.qpos[:] = data['init_qpos']
-            env.sim.data.qvel[:] = data['init_qvel']
-            env.sim.forward()
+def render_model(env, model, goal_path,  save_filename = "video.mp4", n_steps = 300 ):
+    FPS = 30
+    render_skip = max(1, round(1. / \
+        (FPS * env.sim.model.opt.timestep * env.frame_skip)))
+    t0 = timer.time()
 
-def render_model(model, goal_path, n_steps = 300 ):
-    return
+    viewer(env, mode='initialize')
+    for i_frame in range(n_steps):
+        if i_frame % render_skip == 0:
+            viewer(env, mode='render')
+            print(i_frame, end=', ', flush=True)
+    
+    viewer(env, mode='save', filename=filename)
+    print("time taken = %f" % (timer.time() - t0))
 
 def test_model(model, goal_path, show_goal=False, n_steps = 200):
     #load goal
@@ -94,9 +138,6 @@ def test_model(model, goal_path, show_goal=False, n_steps = 200):
     gym_env = gym.make('kitchen_relax-v1')
     env = gym_env.env
     s = env.reset()
-
-    #data_file = "./data/fit_v/friday_kettle_bottomknob_hinge_slide_22_path.pkl"
-    #init_env(env, data_file)
 
     for i in range(5000):
         curr_img = env.render(mode='rgb_array')
@@ -123,4 +164,5 @@ if __name__ == '__main__':
     #test_model(goal_path = "./data/goals/friday_microwave_kettle_topknob_hinge_0_path_img_50.png")
 
     #print_img_goals(data_dir = "./data/validation/")
-    reproduce_file_actions(["./data/validation/friday_microwave_kettle_topknob_hinge_8_path.pkl"])
+    reproduce_file_actions("./data/validation/friday_microwave_kettle_topknob_hinge_8_path.pkl", show_video=True, save=True)
+    #reproduce_file_actions("./data/validation/friday_microwave_kettle_topknob_hinge_8_path.pkl")
