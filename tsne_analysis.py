@@ -31,23 +31,25 @@ def save_imgs(labels, images, skip_frames=0, save_dir ="./results/recognition_cl
             cv2.imwrite(save_path, cv2.cvtColor(img, cv2.COLOR_RGB2BGR)) #save as blue shelfs
 
 def compute_tsne(batch_size = 32, method = "pp", save_name = "clusters",\
-                 show=False, n_filenames=5, plot_n_batches = 1, model_path = "./models/model_b62880.pth"):
+                 show=False, n_filenames=5, plot_n_batches = 1, model_path = "./models/model_b62880.pth",\
+                 window_size = constants.WINDOW_SIZE, n_mix =constants.N_MIXTURES, logistic=constants.USE_LOGISTICS):
     #Load data and transform into sequences
-    file_names = get_filenames("./data/validation")[:n_filenames]
+    file_names = get_filenames("./data/validation")[:n_filenames] #shuffled filenames
     validation_paths = load_data(file_names)
     if(method == "pp"): #plan proposal
-        data_obs, data_imgs, _ = preprocess_data(validation_paths, constants.WINDOW_SIZE, batch_size, validation=True)
+        data_obs, data_imgs, _ = preprocess_data(validation_paths, window_size, batch_size, validation=True)
     else: #plan recognition
-        data_obs, data_imgs, _ = preprocess_data(validation_paths, constants.WINDOW_SIZE, batch_size, validation=False)
+        data_obs, data_imgs, _ = preprocess_data(validation_paths, window_size, batch_size, validation=False)
+        data_obs, data_imgs = data_obs[:plot_n_batches], data_imgs[:plot_n_batches]
     #print("Observation shape", data_obs[0].shape)
 
     #initialize model
     model = PlayLMP(constants.LEARNING_RATE, constants.BETA, \
-                    constants.N_MIXTURES, constants.USE_LOGISTICS)
+                    n_mix, logistic)
     model.load(model_path)
 
     X = []
-    for i in range(plot_n_batches): #get 10 batches
+    for i in range(plot_n_batches): #get n batches
         #obs = B, S, O | imgs = B, S, H, W, C         
         #Get plan from recognition network
         if( method =="pp"):
@@ -80,16 +82,22 @@ def compute_tsne(batch_size = 32, method = "pp", save_name = "clusters",\
     data_imgs = np.concatenate( data_imgs[:plot_n_batches], axis=0)#plot_n_batches * batch_size , seq_len, img_size
     return labels, data_imgs
 
-def plan_proposal_analysis():
+def plan_proposal_analysis(model_path="./models/model_b62880.pth"):
     cluster_labels, seq_imgs = compute_tsne(batch_size = 100, method ="pp", save_name = "proposal_clusters",\
-                                             n_filenames=5, plot_n_batches = 3)
+                                             n_filenames=5, plot_n_batches = 3, model_path= model_path,\
+                                             window_size=16, n_mix=1, logistic=False)
     save_imgs(cluster_labels, seq_imgs, save_dir ="./results/proposal_clusters/")
 
-def plan_recognition_analysis():
-    cluster_labels, seq_imgs = compute_tsne(batch_size = 32, method = "pr", save_name = "recognition_clusters",\
-                                            n_filenames=3, plot_n_batches = 10)#pp or pr
-    save_imgs(cluster_labels, seq_imgs, skip_frames=3, save_dir ="./results/recognition_clusters/")#to take every 4 imgs
+def plan_recognition_analysis(model_path="./models/model_b62880.pth"):
+    cluster_labels, seq_imgs = compute_tsne(batch_size = 10, method = "pr", save_name = "recognition_clusters",\
+                                            n_filenames=3, plot_n_batches = 10, model_path=model_path,\
+                                            window_size = 8, n_mix = 1, logistic = False)#pp or pr
+    #skip_frames =  Win_size//n_imgs - 1
+    try:
+        save_imgs(cluster_labels, seq_imgs, skip_frames=9, save_dir ="./results/recognition_clusters/")
+    except Exception as e:
+        print(e)
 
 if __name__ == '__main__':
-    plan_proposal_analysis()
-    plan_recognition_analysis()
+    plan_proposal_analysis(model_path="./models/model_b62880.pth")
+    #plan_recognition_analysis(model_path="./models/model_b62880.pth")

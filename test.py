@@ -13,7 +13,8 @@ import adept_envs
 import utils.constants as constants
 
 
-def print_img_goals(data_dir="./data/validation/", save_folder = "./data/goals/", i=0, n_packages=1, load_all = False):
+def print_img_goals(data_dir="./data/validation/", save_folder = "./data/goals/", i=0,\
+                     n_packages=1, load_all = False):
     data_files = glob.glob(data_dir + "*.pkl")
     if not load_all:
         data_files = data_files[i:i+n_packages]
@@ -52,10 +53,11 @@ def load_actions_data(file_names):
         paths.append(path)
     return paths
 
-def reproduce_actions(file_names):
-    data = load_actions_data(file_names)[0]
+def reproduce_file_actions(file_names, render=False):
+    data = load_actions_data(file_names)[0]#load first package
     #Env init
-    env = gym.make('kitchen_relax-v1')
+    gym_env = gym.make('kitchen_relax-v1')
+    env = gym_env.env
     s = env.reset()
 
     # prepare env
@@ -76,26 +78,27 @@ def init_env(env, data_file):
             env.sim.data.qvel[:] = data['init_qvel']
             env.sim.forward()
 
-def test_model():
-    #load goal
-    goal_path = "./data/goals/friday_microwave_kettle_topknob_hinge_0_path_img_16.png"
-    goal = plt.imread(goal_path) #read as RGB, blue shelfs
-    plt.imshow(goal)
-    plt.show()
+def render_model(model, goal_path, n_steps = 300 ):
+    return
 
-    #model init
-    model = PlayLMP(constants.LEARNING_RATE, constants.BETA, \
-                       constants.N_MIXTURES, constants.USE_LOGISTICS)
-    model.load("./models/model_b62880.pth")
+def test_model(model, goal_path, show_goal=False, n_steps = 200):
+    #load goal
+    if(show_goal):
+        goal = plt.imread(goal_path) #read as RGB, blue shelfs
+        plt.axis('off')
+        plt.suptitle("Goal")
+        plt.imshow(goal)
+        plt.show()
 
     #Env init
-    env = gym.make('kitchen_relax-v1')
+    gym_env = gym.make('kitchen_relax-v1')
+    env = gym_env.env
     s = env.reset()
 
     #data_file = "./data/fit_v/friday_kettle_bottomknob_hinge_slide_22_path.pkl"
     #init_env(env, data_file)
 
-    for i in range(180):
+    for i in range(5000):
         curr_img = env.render(mode='rgb_array')
         curr_img = cv2.resize(curr_img , (300,300))
 
@@ -113,6 +116,11 @@ def test_model():
         env.render()
 
 if __name__ == '__main__':
-    test_model()
+    #model init
+    #model = PlayLMP(constants.LEARNING_RATE, constants.BETA, \
+    #                  num_mixtures=1, use_logistics=False)
+    #model.load("./models/model_b62880.pth")
+    #test_model(goal_path = "./data/goals/friday_microwave_kettle_topknob_hinge_0_path_img_50.png")
+
     #print_img_goals(data_dir = "./data/validation/")
-    #reproduce_actions(["./data/validation/friday_microwave_kettle_topknob_hinge_8_path.pkl"])
+    reproduce_file_actions(["./data/validation/friday_microwave_kettle_topknob_hinge_8_path.pkl"])
