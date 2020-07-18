@@ -85,7 +85,7 @@ def viewer(env, mode='initialize', filename='video', render=False):
 #Reproduced saved actions from file in the env. Optionally save a video.
 #Load file should include file path + filename + extension
 #save_filename is the name for the video to be saved. It is stored under './data/videos/'
-def reproduce_file_actions(load_file, save_folder = "./data/videos/reproduced_demonstrations/", save_filename = "video.mp4",show_video=True, save_video=False):
+def reproduce_file_actions(load_file, save_folder = "./analysis/videos/reproduced_demonstrations/", save_filename = "video.mp4",show_video=True, save_video=False):
     data = load_actions_data(load_file)
     #Env init
     gym_env = gym.make('kitchen_relax-v1')
@@ -115,7 +115,7 @@ def reproduce_file_actions(load_file, save_folder = "./data/videos/reproduced_de
 
 #model is the already loaded model
 #new_plan is the number of iterations that we wait before sampling a new plan
-def test_model(model, goal_path, show_goal=False, env_steps = 1000, new_plan_frec = 20 , show_video = False,save_video=False, save_folder="./data/videos/model_trials/", save_filename="video.mp4"):
+def test_model(model, goal_path, show_goal=False, env_steps = 1000, new_plan_frec = 20 , show_video = False,save_video=False, save_folder="./analysis/videos/model_trials/", save_filename="video.mp4"):
     #load goal
     goal = plt.imread(goal_path) #read as RGB, blue shelfs
     if(show_goal):
