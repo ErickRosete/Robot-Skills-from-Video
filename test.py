@@ -16,7 +16,7 @@ import skvideo.io
 #Load actions from .pkl file. Use absolute path including extension name
 def load_actions_data(file_name):
     path = {'actions': [], 'init_qpos':[], 'init_qvel':[]} #Only retrieve this keys
-    if os.path.getsize(data_file) > 0:   #Check if the file is not empty   
+    if os.path.getsize(file_name) > 0:   #Check if the file is not empty   
         with open(file_name, 'rb') as f:
             data = pickle.load(f) 
             for key in path.keys():
@@ -28,8 +28,7 @@ def load_actions_data(file_name):
 
 #Print imgs from validation packages. Use i to select the nth package.
 #n_packages to select how many packages to load (i.e, val_data[i:i+n_packages])
-def print_img_goals(data_dir="./data/validation/", save_folder = "./data/goals/", i=0,\
-                     n_packages=1, load_all = False):
+def print_img_goals(data_dir="./data/validation/", save_folder = "./data/goals/", i=0, n_packages=1, load_all = False):
     data_files = glob.glob(data_dir + "*.pkl")
     if not load_all:
         data_files = data_files[i:i+n_packages]
@@ -57,34 +56,37 @@ def print_img_goals(data_dir="./data/validation/", save_folder = "./data/goals/"
 
 #init environment with pos and vel from given file
 def init_env(env, file_name):
-    if os.path.getsize(data_file) > 0:   #Check if the file is not empty   
+    if os.path.getsize(file_name) > 0:   #Check if the file is not empty   
         with open(file_name, 'rb') as f:
             data = pickle.load(f) 
             env.sim.data.qpos[:] = data['init_qpos'].copy()
-            env.sim.data.qvel[:] = data['init_qpos'].copy()
+            env.sim.data.qvel[:] = data['init_qvel'].copy()
             env.sim.forward()
     return env
 
 #Proxy function to either save or render a model
-def viewer(env, mode='initialize', filename='video'):
+def viewer(env, mode='initialize', filename='video', render=False):
     global render_buffer
     if mode == 'initialize':
         render_buffer = []
         mode = 'render'
 
     if mode == 'render':
+        if render == True:
+            env.render()
         curr_frame = env.render(mode='rgb_array')
+        curr_frame = cv2.resize(curr_frame , (curr_frame.shape[1]//3, curr_frame.shape[0]//3))
         render_buffer.append(curr_frame)
 
     if mode == 'save':
         skvideo.io.vwrite(filename, np.asarray(render_buffer))
-        print("\noffscreen buffer saved", filename)
+        print("\n Video saved", filename)
 
 #Reproduced saved actions from file in the env. Optionally save a video.
 #Load file should include file path + filename + extension
 #save_filename is the name for the video to be saved. It is stored under './data/videos/'
-def reproduce_file_actions(load_file, save_filename = "video.mp4", show_video=True, save=False):
-    data = load_actions_data(load_file)[0]#load first package
+def reproduce_file_actions(load_file, save_folder = "./data/videos/reproduced_demonstrations/", save_filename = "video.mp4",show_video=True, save_video=False):
+    data = load_actions_data(load_file)
     #Env init
     gym_env = gym.make('kitchen_relax-v1')
     env = gym_env.env
@@ -92,7 +94,7 @@ def reproduce_file_actions(load_file, save_filename = "video.mp4", show_video=Tr
 
     # prepare env
     env.sim.data.qpos[:] = data['init_qpos'].copy()
-    env.sim.data.qvel[:] = data['init_qpos'].copy()
+    env.sim.data.qvel[:] = data['init_qvel'].copy()
     env.sim.forward()
 
     #Viewer
@@ -101,36 +103,22 @@ def reproduce_file_actions(load_file, save_filename = "video.mp4", show_video=Tr
         (FPS * env.sim.model.opt.timestep * env.frame_skip)))
     viewer(env, mode='initialize')
 
-    for action in data['actions']:
+    for i, action in enumerate(data['actions']):
         s , r, _, _ = env.step(action)
-        if(show_video):
-            if i_frame % render_skip == 0:
-                viewer(env, mode='render')
-                print(i_frame, end=', ', flush=True)
+        if(i % render_skip == 0):
+            viewer(env, mode='render', render=show_video)
     
-    if(save):
-        save_path = "./data/videos/" + save_filename
-        viewer(env, mode='save', filename=save_filename)
+    if(save_video):
+        if not os.path.exists(save_folder):
+                os.makedirs(save_folder)
+        viewer(env, mode='save', filename=save_folder + save_filename)
 
-def render_model(env, model, goal_path,  save_filename = "video.mp4", n_steps = 300 ):
-    FPS = 30
-    render_skip = max(1, round(1. / \
-        (FPS * env.sim.model.opt.timestep * env.frame_skip)))
-    t0 = timer.time()
-
-    viewer(env, mode='initialize')
-    for i_frame in range(n_steps):
-        if i_frame % render_skip == 0:
-            viewer(env, mode='render')
-            print(i_frame, end=', ', flush=True)
-    
-    viewer(env, mode='save', filename=filename)
-    print("time taken = %f" % (timer.time() - t0))
-
-def test_model(model, goal_path, show_goal=False, n_steps = 200):
+#model is the already loaded model
+#new_plan is the number of iterations that we wait before sampling a new plan
+def test_model(model, goal_path, show_goal=False, env_steps = 1000, new_plan_frec = 20 , show_video = False,save_video=False, save_folder="./data/videos/model_trials/", save_filename="video.mp4"):
     #load goal
+    goal = plt.imread(goal_path) #read as RGB, blue shelfs
     if(show_goal):
-        goal = plt.imread(goal_path) #read as RGB, blue shelfs
         plt.axis('off')
         plt.suptitle("Goal")
         plt.imshow(goal)
@@ -141,7 +129,14 @@ def test_model(model, goal_path, show_goal=False, n_steps = 200):
     env = gym_env.env
     s = env.reset()
 
-    for i in range(5000):
+    #init viewer utility
+    FPS = 10
+    render_skip = max(1, round(1. / \
+        (FPS * env.sim.model.opt.timestep * env.frame_skip)))
+    viewer(env, mode='initialize')
+
+    #take actions
+    for i in range(env_steps):
         curr_img = env.render(mode='rgb_array')
         curr_img = cv2.resize(curr_img , (300,300))
 
@@ -150,21 +145,33 @@ def test_model(model, goal_path, show_goal=False, n_steps = 200):
         current_and_goal = np.stack((curr_img, goal) , axis=0) #(2, 300, 300, 3)
         current_and_goal = np.expand_dims(current_and_goal.transpose(0,3,1,2), axis=0) #(1, 2, 3, 300, 300)
         current_obs = np.expand_dims(s[:9], axis=0) #(1,9)
+        
         #prediction
-        #if(i % 30 == 0):
-        #    plan = model.get_pp_plan(current_obs,current_and_goal)
-        #action = model.predict_with_plan(current_obs, current_and_goal, plan).squeeze(0) #(9)
-        action = model.predict(current_obs, current_and_goal).squeeze(0) #(9)
+        if(i % new_plan_frec == 0):
+            plan = model.get_pp_plan(current_obs,current_and_goal)
+        action = model.predict_with_plan(current_obs, current_and_goal, plan).squeeze(0) #(9)
+        #action = model.predict(current_obs, current_and_goal).squeeze(0) #(9) new plan every step
         s , r, _, _ = env.step(action.cpu().detach().numpy())
-        env.render()
+        if(i % render_skip == 0):
+            viewer(env, mode='render', render=show_video)
+    
+    #Save model
+    if(save_video):
+        if not os.path.exists(save_folder):
+            os.makedirs(save_folder)
+    viewer(env, mode='save', filename=save_folder + save_filename)
+
+def test():
+    #model init
+    model = PlayLMP(constants.LEARNING_RATE, constants.BETA, \
+                      num_mixtures=1, use_logistics=False)
+    model.load("./models/model_b62880.pth")
+    #test
+    goal_file = "./data/goals/friday_microwave_kettle_topknob_hinge_0_path_img_50.png"
+    test_model(model, goal_file, env_steps=300, new_plan_frec=1, save_video=True, show_video = False, save_filename="MKTH.mp4")
 
 if __name__ == '__main__':
-    #model init
-    #model = PlayLMP(constants.LEARNING_RATE, constants.BETA, \
-    #                  num_mixtures=1, use_logistics=False)
-    #model.load("./models/model_b62880.pth")
-    #test_model(goal_path = "./data/goals/friday_microwave_kettle_topknob_hinge_0_path_img_50.png")
-
-    #print_img_goals(data_dir = "./data/validation/")
-    reproduce_file_actions("./data/validation/friday_microwave_kettle_topknob_hinge_8_path.pkl", show_video=True, save=True)
-    #reproduce_file_actions("./data/validation/friday_microwave_kettle_topknob_hinge_8_path.pkl")
+    test()
+    #print_img_goals(data_dir = "./data/validation/", i=0, n_packages=1)
+    #demonstration_filename = "./data/validation/friday_microwave_kettle_topknob_hinge_8_path.pkl"
+    #reproduce_file_actions(demonstration_filename, show_video=True, save_video=True, save_filename = "mkth_demo.mp4")
