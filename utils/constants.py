@@ -12,12 +12,12 @@ N_MIXTURES = 1
 
 # ------------ Training constants  ------------ #
 N_EPOCH = 20
-WINDOW_SIZE = 16
+WINDOW_SIZE = 8
 MAX_WINDOW_SIZE = 16
 MIN_WINDOWS_SIZE = 8
-VAL_BATCH_SIZE = 128
+VAL_BATCH_SIZE = 50
 TRAIN_BATCH_SIZE = 8 
-FILES_TO_LOAD = 5 # Files to load during training simultaneously
+FILES_TO_LOAD = 1 # Files to load during training simultaneously
 EVAL_FREQ = 20 # Validate every eval_freq batches
 LEARNING_RATE = 2e-4
 BETA = 0.01
