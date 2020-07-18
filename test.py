@@ -30,9 +30,11 @@ def print_img_goals(data_dir="./data/validation/", save_folder = "./data/goals/"
                     data_img = pickle.load(f)['images']
                 else:
                     data_img = np.concatenate(pickle.load(f)['images'], axis=0)
+            if not os.path.exists(save_folder):
+                os.makedirs(save_folder)
             for i,img in enumerate(data_img):
-                    save_path = save_folder + os.path.basename(file)[:-4] +"_img_"+str(i)+".png"
-                    cv2.imwrite(save_path, cv2.cvtColor(img, cv2.COLOR_RGB2BGR)) #save as blue shelfs
+                save_path = save_folder + os.path.basename(file)[:-4] + "_img_" + str(i) + ".png"
+                cv2.imwrite(save_path, cv2.cvtColor(img, cv2.COLOR_RGB2BGR)) #save as blue shelfs
     except Exception as e:
         print(e)      
 
@@ -122,5 +124,5 @@ if __name__ == '__main__':
     #model.load("./models/model_b62880.pth")
     #test_model(goal_path = "./data/goals/friday_microwave_kettle_topknob_hinge_0_path_img_50.png")
 
-    #print_img_goals(data_dir = "./data/validation/")
-    reproduce_file_actions(["./data/validation/friday_microwave_kettle_topknob_hinge_8_path.pkl"])
+    print_img_goals(data_dir = "./data/2_of_each/")
+    #reproduce_file_actions(["./data/validation/friday_microwave_kettle_topknob_hinge_8_path.pkl"])
