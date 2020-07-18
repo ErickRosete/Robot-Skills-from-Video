@@ -45,9 +45,11 @@ def print_img_goals(data_dir="./data/validation/", save_folder = "./data/goals/"
                     data_img = pickle.load(f)['images']
                 else:
                     data_img = np.concatenate(pickle.load(f)['images'], axis=0)
+            if not os.path.exists(save_folder):
+                os.makedirs(save_folder)
             for i,img in enumerate(data_img):
-                    save_path = save_folder + os.path.basename(file)[:-4] +"_img_"+str(i)+".png"
-                    cv2.imwrite(save_path, cv2.cvtColor(img, cv2.COLOR_RGB2BGR)) #save as blue shelfs
+                save_path = save_folder + os.path.basename(file)[:-4] + "_img_" + str(i) + ".png"
+                cv2.imwrite(save_path, cv2.cvtColor(img, cv2.COLOR_RGB2BGR)) #save as blue shelfs
     except Exception as e:
         print(e)      
 

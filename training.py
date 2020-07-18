@@ -2,7 +2,7 @@ from networks.play_lmp import PlayLMP
 from torch.utils.tensorboard import SummaryWriter
 from preprocessing import read_data, preprocess_data, get_filenames, load_data
 import utils.constants as constants
-
+import numpy as np
 if __name__ == "__main__":
     # ------------ Initialization ------------ #
     writer = SummaryWriter()
@@ -41,6 +41,7 @@ if __name__ == "__main__":
             del training_filenames[:files_to_load]
             print("Reading training data ...")
             training_paths = load_data(curr_filenames)
+            window_size = np.random.randint(constants.MIN_WINDOWS_SIZE, constants.MAX_WINDOW_SIZE) # More robust?
             train_obs, train_imgs, train_acts = preprocess_data(training_paths, window_size, batch_size)
             print("Training, number of batches:", len(train_obs))
             print("Training, batch size:", train_obs[0].shape[0])

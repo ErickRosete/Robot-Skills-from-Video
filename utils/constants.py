@@ -7,12 +7,14 @@ Created on Tue Jun 30 20:02:01 2020
 N_DOF_ROBOT = 9 # From kitchen_multitask_v0.py
 VISUAL_FEATURES = 64
 PLAN_FEATURES = 256
-USE_LOGISTICS = True
-N_MIXTURES = 10
+USE_LOGISTICS = False
+N_MIXTURES = 1
 
 # ------------ Training constants  ------------ #
 N_EPOCH = 20
 WINDOW_SIZE = 16
+MAX_WINDOW_SIZE = 16
+MIN_WINDOWS_SIZE = 8
 VAL_BATCH_SIZE = 128
 TRAIN_BATCH_SIZE = 8 
 FILES_TO_LOAD = 5 # Files to load during training simultaneously
