@@ -119,7 +119,7 @@ class PlayLMP():
         acts = self.to_tensor(acts[:, 0])
 
         # ------------ Loss ------------ #
-        kl_loss = D.kl_divergence(pp_dist, pr_dist).mean()
+        kl_loss = D.kl_divergence(pr_dist, pp_dist).mean()
         if self.use_logistics:
             prediction = torch.cat([logit_probs, means, scales], dim=1)
             target = acts.unsqueeze(2)
