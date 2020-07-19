@@ -6,7 +6,13 @@ import numpy as np
 from datetime import datetime
 
 if __name__ == "__main__":
-    exp_name = "mws_1_gaussian_multitask"
+    #----------- Parser ------------#
+    parser = argparse.ArgumentParser(description='some description')
+    parser.add_argument('--exp_name', dest='exp_name', type=str, default='mws_1_logistics_multitask')
+    args = parser.parse_args()
+    print(args)
+    #-------------------------------#
+    exp_name = args.exp_name
     summary_name = "./runs/"+ exp_name + datetime.today().strftime('_%m_%d__%H_%M') # month, day, hr, min
     # ------------ Initialization ------------ #
     writer = SummaryWriter(summary_name)
@@ -37,7 +43,7 @@ if __name__ == "__main__":
 
     # ------------ Training ------------ #
     batch = 0
-    best_val_accuracy = 0
+    best_val_accuracy, best_val_loss = 0, float('inf')
     for epoch in range(epochs):
         training_filenames = get_filenames("./data/training")
         # ------------ Filenames loop ------------ #
@@ -72,8 +78,14 @@ if __name__ == "__main__":
                     #Save only the best models
                     if(val_accuracy > best_val_accuracy):
                         best_val_accuracy = val_accuracy
-                        file_name = "./models/%s_b%d.pth" % (exp_name, batch)
+                        file_name = "./models/%s_b%d_bv.pth" % (exp_name, batch)
                         play_lmp.save(file_name)
+                    
+                    if(val_mix_loss < best_val_loss):
+                        best_val_loss = val_mix_loss
+                        file_name = "./models/%s_b%d_bl.pth" % (exp_name, batch)
+                        play_lmp.save(file_name)
+                    
                     #Log to tensorboard
                     writer.add_scalar('train/total_loss', training_error, batch)
                     writer.add_scalar('train/mixture_loss', mix_loss, batch)
