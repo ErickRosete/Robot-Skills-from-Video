@@ -1,28 +1,29 @@
 import numpy as np
 import glob
-import pickle 
+import pickle
 import matplotlib.pyplot as plt
 from networks.play_lmp import PlayLMP
 import torch
 import cv2
-import os 
+import os
 import gym
 import sys
 sys.path.append("./relay-policy-learning/adept_envs/")
 import adept_envs
 import utils.constants as constants
 import skvideo.io
+import argparse
 
 #Load actions from .pkl file. Use absolute path including extension name
 def load_actions_data(file_name):
     path = {'actions': [], 'init_qpos':[], 'init_qvel':[]} #Only retrieve this keys
-    if os.path.getsize(file_name) > 0:   #Check if the file is not empty   
+    if os.path.getsize(file_name) > 0:   #Check if the file is not empty
         with open(file_name, 'rb') as f:
-            data = pickle.load(f) 
+            data = pickle.load(f)
             for key in path.keys():
                 if key == "observations":
                     path[key] = data[key][:, :9]
-                else:    
+                else:
                     path[key] = data[key]
     return path
 
@@ -50,15 +51,15 @@ def print_img_goals(data_dir="./data/validation/", save_folder = "./data/goals/"
                 save_path = save_folder + os.path.basename(file)[:-4] + "_img_" + str(i) + ".png"
                 cv2.imwrite(save_path, cv2.cvtColor(img, cv2.COLOR_RGB2BGR)) #save as blue shelfs
     except Exception as e:
-        print(e)      
+        print(e)
 
     print("done!")
 
 #init environment with pos and vel from given file
 def init_env(env, file_name):
-    if os.path.getsize(file_name) > 0:   #Check if the file is not empty   
+    if os.path.getsize(file_name) > 0:   #Check if the file is not empty
         with open(file_name, 'rb') as f:
-            data = pickle.load(f) 
+            data = pickle.load(f)
             env.sim.data.qpos[:] = data['init_qpos'].copy()
             env.sim.data.qvel[:] = data['init_qvel'].copy()
             env.sim.forward()
@@ -107,7 +108,7 @@ def reproduce_file_actions(load_file, save_folder = "./analysis/videos/reproduce
         s , r, _, _ = env.step(action)
         if(i % render_skip == 0):
             viewer(env, mode='render', render=show_video)
-    
+
     if(save_video):
         if not os.path.exists(save_folder):
                 os.makedirs(save_folder)
@@ -146,7 +147,7 @@ def test_model(model, goal_path, show_goal=False, env_steps = 1000, new_plan_fre
         current_and_goal = np.stack((curr_img, goal) , axis=0) #(2, 300, 300, 3)
         current_and_goal = np.expand_dims(current_and_goal.transpose(0,3,1,2), axis=0) #(1, 2, 3, 300, 300)
         current_obs = np.expand_dims(s[:9], axis=0) #(1,9)
-        
+
         #prediction
         if(i % new_plan_frec == 0):
             plan = model.get_pp_plan(current_obs,current_and_goal)
@@ -155,7 +156,7 @@ def test_model(model, goal_path, show_goal=False, env_steps = 1000, new_plan_fre
         s , r, _, _ = env.step(action.cpu().detach().numpy())
         if(i % render_skip == 0):
             viewer(env, mode='render', render=show_video)
-    
+
     #Save model
     if(save_video):
         if not os.path.exists(save_folder):
@@ -163,17 +164,26 @@ def test_model(model, goal_path, show_goal=False, env_steps = 1000, new_plan_fre
         viewer(env, mode='save', filename=save_folder + save_filename)
     env.close()
 
-def test():
+def test(model_file_path, goal_file_path):
     #model init
     model = PlayLMP(constants.LEARNING_RATE, constants.BETA, \
                       num_mixtures=1, use_logistics=False)
-    model.load("./models/model_b23960.pth")
+    model.load(model_file_path)
     #test
-    goal_file = "./data/goals/grip_microwave.png"
-    test_model(model, goal_file, env_steps=500, new_plan_frec=30, save_video=False, show_video=True, save_filename="MKTH.mp4")
+    test_model(model, goal_file_path, env_steps=300, new_plan_frec=1, save_video=False, show_video = True, save_filename="MKTH.mp4")
 
 if __name__ == '__main__':
-    test()
+    #----------- Parser ------------#
+    parser = argparse.ArgumentParser(description='some description')
+    parser.add_argument('--goal_file_path', dest='goal_file_path', type=str, default='./data/goals/microwave.png')
+    parser.add_argument('--model_file_path', dest='model_file_path', type=str, default='./models/1_gaussian_multitask.pth')
+    args = parser.parse_args()
+    #-------------------------------#
+
+    # Good models
+    # mws_1_gaussian_multitask_b77100
+    # mws_1_gaussian_multitask_b41350
+    test(args.model_file_path, args.goal_file_path)
     #print_img_goals(data_dir = "./data/validation/", i=0, n_packages=1)
     #demonstration_filename = "./data/validation/friday_microwave_kettle_topknob_hinge_8_path.pkl"
     #reproduce_file_actions(demonstration_filename, show_video=True, save_video=True, save_filename = "mkth_demo.mp4")
