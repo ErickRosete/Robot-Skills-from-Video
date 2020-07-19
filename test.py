@@ -13,6 +13,7 @@ import adept_envs
 import utils.constants as constants
 import skvideo.io
 import argparse
+from tqdm import tqdm
 
 #Load actions from .pkl file. Use absolute path including extension name
 def load_actions_data(file_name):
@@ -137,7 +138,7 @@ def test_model(model, goal_path, show_goal=False, env_steps = 1000, new_plan_fre
     viewer(env, mode='initialize')
 
     #take actions
-    for i in range(env_steps):
+    for i in tqdm(range(env_steps)):
         curr_img = env.render(mode='rgb_array')
         curr_img = cv2.resize(curr_img , (300,300))
 
@@ -162,21 +163,23 @@ def test_model(model, goal_path, show_goal=False, env_steps = 1000, new_plan_fre
             os.makedirs(save_folder)
     viewer(env, mode='save', filename=save_folder + save_filename)
 
-def test(model_file_path, goal_file_path):
+def test(model_file_path, goal_file_path, use_logistics):
     #model init
     model = PlayLMP(constants.LEARNING_RATE, constants.BETA, \
-                      num_mixtures=1, use_logistics=False)
+                      num_mixtures=1, use_logistics=use_logistics)
     model.load(model_file_path)
     #test
     test_model(model, goal_file_path, env_steps=300, new_plan_frec=1, save_video=True, show_video = False, save_filename="MKTH.mp4")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='some description')
-    parser.add_argument('--goal_file_path', dest='goal_file_path', type=str, default='./data/goals/friday_kettle_bottomknob_switch_slide_6_path_img_35.png')
-    parser.add_argument('--model_file_path', dest='model_file_path', type=str, default='./models/model_b62880.pth')
+    parser.add_argument('--goal_file_path', dest='goal_file_path', type=str, default='./data/goal/move_kettle.png')
+    parser.add_argument('--model_file_path', dest='model_file_path', type=str, default='./models/mws_1_logistics_multitask_b7650.pth.pth')
+    parser.add_argument('--use_logistics', dest='use_logistics', type=bool, default=True)
     args = parser.parse_args()
+    print(args)
 
-    test(args.model_file_path, args.goal_file_path)
+    test(args.model_file_path, args.goal_file_path, args.use_logistics)
     #print_img_goals(data_dir = "./data/validation/", i=0, n_packages=1)
     #demonstration_filename = "./data/validation/friday_microwave_kettle_topknob_hinge_8_path.pkl"
     #reproduce_file_actions(demonstration_filename, show_video=True, save_video=True, save_filename = "mkth_demo.mp4")

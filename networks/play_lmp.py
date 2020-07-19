@@ -9,6 +9,7 @@ import torch.optim as optim
 import torch.distributions as D
 from torch.distributions.normal import Normal
 import utils.mixture as mixtures
+import utils.plot as plot
 
 class PlayLMP():
     def __init__(self, lr=2e-4, beta=0.01, num_mixtures=5, use_logistics=False):
@@ -233,6 +234,10 @@ class PlayLMP():
                 logit_probs, scales, means = self.action_decoder(action_input)
                 prediction = torch.cat([logit_probs, means, scales], dim=1)
                 action = mixtures.sample_from_discretized_mix_logistic(prediction)
+
+                #plot predicted mean, scale, logistics
+                if np.random.uniform(low=0.0, high=1.0) > 0.5:
+                    plot.plot_logistic_distribution(prediction, action)
             elif(self.num_mixtures > 1):
                 alphas, variances, means= self.action_decoder(action_input)
                 action = self.action_decoder.sample(alphas, variances, means)
