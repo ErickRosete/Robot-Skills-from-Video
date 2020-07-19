@@ -33,6 +33,44 @@ def get_filenames(datasets_dir="./data/training"):
     np.random.shuffle(file_names)
     return file_names
 
+#For validation
+def mult_wind_preprocessing(paths, min_ws, max_ws, batch_size=64):
+    #Complete paths -> List of windows
+    seq_obs, seq_imgs, seq_acts = [], [], []
+    for path in paths:
+        observations = path['observations']
+        images = path['images']
+        actions = path['actions']
+        n = observations.shape[0]
+        t = 0
+        window_size = np.random.randint(min_ws, max_ws + 1)
+        while t + window_size <= n - 1: 
+            seq_obs.append(observations[t])
+            seq_imgs.append(np.array([images[t], images[t+window_size]]))
+            seq_acts.append(actions[t])
+            window_size = np.random.randint(min_ws, max_ws + 1)
+            t += 1
+    
+    #List -> numpy array
+    seq_obs = np.stack(seq_obs, axis=0) # B, O
+    seq_imgs = np.stack(seq_imgs, axis=0) # B, S, H, W, C
+    seq_imgs = np.transpose(seq_imgs, (0, 1, 4, 2, 3)) # B, S, C, H, W
+    seq_acts = np.stack(seq_acts, axis=0) # B, A
+
+    #Shuffle inds
+    inds = np.arange(seq_obs.shape[0])
+    np.random.shuffle(inds)
+    seq_obs = seq_obs[inds]
+    seq_imgs = seq_imgs[inds]
+    seq_acts = seq_acts[inds]
+
+    #Split to batches
+    num_splits = seq_obs.shape[0]//batch_size
+    seq_obs = np.array_split(seq_obs, num_splits)
+    seq_imgs = np.array_split(seq_imgs, num_splits)
+    seq_acts = np.array_split(seq_acts, num_splits)
+    return seq_obs, seq_imgs, seq_acts
+    
 def preprocess_data(paths, window_size=16, batch_size=64, validation=False):
     #Complete paths -> List of windows
     seq_obs, seq_imgs, seq_acts = [], [], []

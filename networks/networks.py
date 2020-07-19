@@ -120,7 +120,7 @@ class PlanProposalNetwork(nn.Module):
         return mean, variance # shape: [N, 256]
 
 class LogisticPolicyNetwork(nn.Module):
-    def __init__(self, n_mix=constants.N_MIXTURES):
+    def __init__(self, n_mix=constants.N_LOGITS):
         super(LogisticPolicyNetwork, self).__init__()
         self.in_features = (constants.VISUAL_FEATURES + constants.N_DOF_ROBOT) + constants.VISUAL_FEATURES + constants.PLAN_FEATURES
 
