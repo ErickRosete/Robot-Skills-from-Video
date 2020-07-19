@@ -8,7 +8,7 @@ N_DOF_ROBOT = 9 # From kitchen_multitask_v0.py
 VISUAL_FEATURES = 64
 PLAN_FEATURES = 256
 USE_LOGISTICS = False
-N_MIXTURES = 1
+N_MIXTURES = 1 # for gaussian distributions
 N_LOGITS = 10 # for logistic distributions
 
 # ------------ Training constants  ------------ #
