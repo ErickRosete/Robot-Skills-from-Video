@@ -105,7 +105,6 @@ def reproduce_file_actions(load_file, save_folder = "./analysis/videos/reproduce
     viewer(env, mode='initialize')
 
     for i, action in enumerate(data['actions']):
-        print(i, action)
         s , r, _, _ = env.step(action)
         if(i % render_skip == 0):
             viewer(env, mode='render', render=show_video)
@@ -169,17 +168,17 @@ def test(model_file_path, goal_file_path):
                       num_mixtures=1, use_logistics=False)
     model.load(model_file_path)
     #test
-    test_model(model, goal_file_path, env_steps=300, new_plan_frec=1, save_video=True, show_video = False, save_filename="MKTH.mp4")
+    test_model(model, goal_file_path, env_steps=300, new_plan_frec=1, save_video=False, show_video = True, save_filename="MKTH.mp4")
 
 if __name__ == '__main__':
     #----------- Parser ------------#
     parser = argparse.ArgumentParser(description='some description')
-    parser.add_argument('--goal_file_path', dest='goal_file_path', type=str, default='./data/goals/friday_kettle_bottomknob_switch_slide_6_path_img_35.png')
-    parser.add_argument('--model_file_path', dest='model_file_path', type=str, default='./models/model_b62880.pth')
+    parser.add_argument('--goal_file_path', dest='goal_file_path', type=str, default='./data/goals/microwave.png')
+    parser.add_argument('--model_file_path', dest='model_file_path', type=str, default='./models/1_gaussian_multitask.pth')
     args = parser.parse_args()
     #-------------------------------#
 
     test(args.model_file_path, args.goal_file_path)
     #print_img_goals(data_dir = "./data/validation/", i=0, n_packages=1)
-    demonstration_filename = "./data/validation/friday_microwave_kettle_topknob_hinge_8_path.pkl"
-    reproduce_file_actions(demonstration_filename, show_video=True, save_video=True, save_filename = "mkth_demo.mp4")
+    #demonstration_filename = "./data/validation/friday_microwave_kettle_topknob_hinge_8_path.pkl"
+    #reproduce_file_actions(demonstration_filename, show_video=True, save_video=True, save_filename = "mkth_demo.mp4")
