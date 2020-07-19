@@ -104,6 +104,7 @@ def reproduce_file_actions(load_file, save_folder = "./analysis/videos/reproduce
     viewer(env, mode='initialize')
 
     for i, action in enumerate(data['actions']):
+        print(i, action)
         s , r, _, _ = env.step(action)
         if(i % render_skip == 0):
             viewer(env, mode='render', render=show_video)
@@ -165,13 +166,14 @@ def test():
     #model init
     model = PlayLMP(constants.LEARNING_RATE, constants.BETA, \
                       num_mixtures=1, use_logistics=False)
-    model.load("./models/model_b62880.pth")
+    model.load("./models/model_b9220.pth")
     #test
     goal_file = "./data/goals/friday_microwave_kettle_topknob_hinge_0_path_img_50.png"
-    test_model(model, goal_file, env_steps=300, new_plan_frec=1, save_video=True, show_video = False, save_filename="MKTH.mp4")
+    test_model(model, goal_file, env_steps=300, new_plan_frec=1, save_video=False, \
+                show_video = True, save_filename="MKTH_9220.mp4")
 
 if __name__ == '__main__':
-    test()
+    #test()
     #print_img_goals(data_dir = "./data/validation/", i=0, n_packages=1)
-    #demonstration_filename = "./data/validation/friday_microwave_kettle_topknob_hinge_8_path.pkl"
-    #reproduce_file_actions(demonstration_filename, show_video=True, save_video=True, save_filename = "mkth_demo.mp4")
+    demonstration_filename = "./data/validation/friday_microwave_kettle_topknob_hinge_8_path.pkl"
+    reproduce_file_actions(demonstration_filename, show_video=True, save_video=True, save_filename = "mkth_demo.mp4")
