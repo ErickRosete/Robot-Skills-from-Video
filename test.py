@@ -169,15 +169,17 @@ def test(model_file_path, goal_file_path, use_logistics):
                       num_mixtures=1, use_logistics=use_logistics)
     model.load(model_file_path)
     #test
-    test_model(model, goal_file_path, env_steps=300, new_plan_frec=1, save_video=True, show_video = False, save_filename="MKTH.mp4")
+    test_model(model, goal_file_path, env_steps=300, new_plan_frec=1, save_video=False, show_video = True, save_filename="MKTH.mp4")
 
 if __name__ == '__main__':
+    #----------- Parser ------------#
     parser = argparse.ArgumentParser(description='some description')
-    parser.add_argument('--goal_file_path', dest='goal_file_path', type=str, default='./data/goal/move_kettle.png')
-    parser.add_argument('--model_file_path', dest='model_file_path', type=str, default='./models/mws_1_logistics_multitask_b7650.pth.pth')
+    parser.add_argument('--goal_file_path', dest='goal_file_path', type=str, default='./data/goals/microwave.png')
+    parser.add_argument('--model_file_path', dest='model_file_path', type=str, default='./models/1_gaussian_multitask.pth')
     parser.add_argument('--use_logistics', dest='use_logistics', type=bool, default=True)
     args = parser.parse_args()
     print(args)
+    #-------------------------------#
 
     test(args.model_file_path, args.goal_file_path, args.use_logistics)
     #print_img_goals(data_dir = "./data/validation/", i=0, n_packages=1)

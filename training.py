@@ -7,10 +7,12 @@ from datetime import datetime
 import argparse
 
 if __name__ == "__main__":
+    #----------- Parser ------------#
     parser = argparse.ArgumentParser(description='some description')
     parser.add_argument('--exp_name', dest='exp_name', type=str, default='mws_1_logistics_multitask')
     args = parser.parse_args()
     print(args)
+    #-------------------------------#
     exp_name = args.exp_name
     summary_name = "./runs/"+ exp_name + datetime.today().strftime('_%m_%d__%H_%M') # month, day, hr, min
     # ------------ Initialization ------------ #
