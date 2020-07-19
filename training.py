@@ -4,22 +4,26 @@ from preprocessing import read_data, preprocess_data, get_filenames, load_data, 
 import utils.constants as constants
 import numpy as np
 from datetime import datetime
+import argparse
 
 if __name__ == "__main__":
-    exp_name = "mws_1_gaussian_multitask"
+    parser = argparse.ArgumentParser(description='some description')
+    parser.add_argument('--exp_name', dest='exp_name', type=str, default='mws_1_logistics_multitask')
+    args = parser.parse_args()
+    exp_name = args.exp_name
     summary_name = "./runs/"+ exp_name + datetime.today().strftime('_%m_%d__%H_%M') # month, day, hr, min
     # ------------ Initialization ------------ #
     writer = SummaryWriter(summary_name)
     play_lmp = PlayLMP(constants.LEARNING_RATE, constants.BETA, \
                        constants.N_MIXTURES, constants.USE_LOGISTICS)
     #play_lmp.load("./models/model_b4780.pth")
-    
+
     # ------------ Hyperparams ------------ #
     epochs = constants.N_EPOCH
     min_ws = constants.MIN_WINDOWS_SIZE
     max_ws = constants.MAX_WINDOW_SIZE
     val_batch_size = constants.VAL_BATCH_SIZE
-    batch_size = constants.TRAIN_BATCH_SIZE 
+    batch_size = constants.TRAIN_BATCH_SIZE
     files_to_load = constants.FILES_TO_LOAD #Files to load during training simultaneously
     eval_freq = constants.EVAL_FREQ #validate every eval_freq batches
 
@@ -28,7 +32,7 @@ if __name__ == "__main__":
     validation_paths = read_data("./data/validation")
     #val_obs, val_imgs, val_acts = preprocess_data(validation_paths, window_size, val_batch_size, True)
     val_obs, val_imgs, val_acts = mult_wind_preprocessing(validation_paths, min_ws, max_ws, val_batch_size)
-    #Note when preprocesing validation data we return 
+    #Note when preprocesing validation data we return
     #[current_img, goal_img] , current_obs, current_action
     #then val_imgs=(batch,2,3,300,300), val_acts = (batch,9), val_obs = (batch,9)
     val_obs, val_imgs, val_acts = val_obs[:5], val_imgs[:5], val_acts[:5] # Keep only 5 batches (Memory)
@@ -58,7 +62,7 @@ if __name__ == "__main__":
                 batch_obs, batch_imgs, batch_acts = train_obs.pop(), train_imgs.pop(), train_acts.pop()
                 # STEP
                 training_error, mix_loss, kl_loss = play_lmp.step(batch_obs, batch_imgs, batch_acts)
-                
+
                 # ------------ Evaluation ------------ #
                 if(batch % eval_freq == 0):
                     val_accuracy, val_mix_loss = 0, 0
@@ -81,7 +85,7 @@ if __name__ == "__main__":
                     writer.add_scalar('validation/mixture_loss', val_mix_loss, batch)
                     writer.add_scalar('validation/accuracy', val_accuracy, batch)
                     print("Batch: %d, training error: %.2f, validation accuracy: %.2f" % (batch, training_error, val_accuracy))
-                batch += 1  
+                batch += 1
 
             #print("Train cycle ...")
         print("Finished " + str(epoch + 1) + " epoch")
