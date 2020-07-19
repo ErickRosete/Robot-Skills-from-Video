@@ -172,13 +172,13 @@ def test(model_file_path, goal_file_path):
     test_model(model, goal_file_path, env_steps=300, new_plan_frec=1, save_video=True, show_video = False, save_filename="MKTH.mp4")
 
 if __name__ == '__main__':
-    #Parser
+    #----------- Parser ------------#
     parser = argparse.ArgumentParser(description='some description')
     parser.add_argument('--goal_file_path', dest='goal_file_path', type=str, default='./data/goals/friday_kettle_bottomknob_switch_slide_6_path_img_35.png')
     parser.add_argument('--model_file_path', dest='model_file_path', type=str, default='./models/model_b62880.pth')
     args = parser.parse_args()
     #-------------------------------#
-    
+
     test(args.model_file_path, args.goal_file_path)
     #print_img_goals(data_dir = "./data/validation/", i=0, n_packages=1)
     demonstration_filename = "./data/validation/friday_microwave_kettle_topknob_hinge_8_path.pkl"
