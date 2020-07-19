@@ -8,15 +8,16 @@ N_DOF_ROBOT = 9 # From kitchen_multitask_v0.py
 VISUAL_FEATURES = 64
 PLAN_FEATURES = 256
 USE_LOGISTICS = False
-N_MIXTURES = 1
+N_MIXTURES = 1 # for gaussian distributions
+N_LOGITS = 10 # for logistic distributions
 
 # ------------ Training constants  ------------ #
-N_EPOCH = 20
+N_EPOCH = 10
 WINDOW_SIZE = 8
 MIN_WINDOWS_SIZE = 12
-MAX_WINDOW_SIZE = 24
+MAX_WINDOW_SIZE = 20
 VAL_BATCH_SIZE = 50
-TRAIN_BATCH_SIZE = 8 
+TRAIN_BATCH_SIZE = 8
 FILES_TO_LOAD = 1 # Files to load during training simultaneously
 EVAL_FREQ = 50 # Validate every eval_freq batches
 LEARNING_RATE = 2e-4
