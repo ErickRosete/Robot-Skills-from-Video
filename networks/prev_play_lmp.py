@@ -1,6 +1,5 @@
 #import from training dir
-from networks.networks import  VisionNetwork, PlanRecognitionNetwork, PlanProposalNetwork
-from networks.logistic_policy_network import LogisticPolicyNetwork
+from networks.networks import  VisionNetwork, PlanRecognitionNetwork, PlanProposalNetwork, LogisticPolicyNetwork
 from networks.action_decoder_network import ActionDecoderNetwork
 from networks.gaussian_policy_network import GaussianPolicyNetwork
 import torch
@@ -21,7 +20,7 @@ class PlayLMP():
         self.num_mixtures = num_mixtures
         self.use_logistics = use_logistics
         if use_logistics:
-            self.action_decoder = LogisticPolicyNetwork(num_mixtures).cuda() 
+            self.action_decoder = LogisticPolicyNetwork(num_mixtures).cuda() #default n_mix = 10
         elif(num_mixtures > 1):
             self.action_decoder = ActionDecoderNetwork(num_mixtures).cuda()
         else:
@@ -113,7 +112,7 @@ class PlayLMP():
         sampled_plan = pr_dist.rsample() #sample from recognition net
         action_input = torch.cat([pp_input, sampled_plan], dim=-1).unsqueeze(1)
         if self.use_logistics:
-            probs, log_scales, means = self.action_decoder(action_input)
+            logit_probs, scales, means = self.action_decoder(action_input)
         elif(self.num_mixtures > 1):
             alphas, variances, means= self.action_decoder(action_input)
         else:
@@ -123,7 +122,9 @@ class PlayLMP():
         # ------------ Loss ------------ #
         kl_loss = D.kl_divergence(pr_dist, pp_dist).mean()
         if self.use_logistics:
-            mix_loss = self.action_decoder.loss(probs, log_scales, means, acts)
+            prediction = torch.cat([logit_probs, means, scales], dim=1)
+            target = acts.unsqueeze(2)
+            mix_loss = mixtures.discretized_mix_logistic_loss(target, prediction, reduce=True)
         elif(self.num_mixtures > 1):
             mix_loss = self.action_decoder.loss(alphas, variances, means, acts)
         else:
@@ -157,14 +158,16 @@ class PlayLMP():
             sampled_plan = pp_dist.sample() #sample from proposal net
             action_input = torch.cat([pp_input, sampled_plan], dim=-1).unsqueeze(1)
             if self.use_logistics:
-                probs, log_scales, means = self.action_decoder(action_input)
-                action = self.action_decoder.sample(probs, log_scales, means)
+                logit_probs, scales, means = self.action_decoder(action_input)
+                prediction = torch.cat([logit_probs, means, scales], dim=1)
+                action = mixtures.sample_from_discretized_mix_logistic(prediction)
             elif(self.num_mixtures > 1):
                 alphas, variances, means= self.action_decoder(action_input)
                 action = self.action_decoder.sample(alphas, variances, means)
             else:
                 mean, variance = self.action_decoder(action_input)
                 action = self.action_decoder.sample(mean, variance)
+
         return action
 
     #Predict method to be able to compute val accuracy and error.
@@ -188,10 +191,11 @@ class PlayLMP():
             sampled_plan = pp_dist.sample() #sample from proposal net
             action_input = torch.cat([pp_input, sampled_plan], dim=-1).unsqueeze(1)
             if self.use_logistics:
-                probs, log_scales, means = self.action_decoder(action_input)
-                action = self.action_decoder.sample(probs, log_scales, means)
+                logit_probs, scales, means = self.action_decoder(action_input)
+                prediction = torch.cat([logit_probs, means, scales], dim=1)
+                action = mixtures.sample_from_discretized_mix_logistic(prediction)
             elif(self.num_mixtures > 1):
-                alphas, variances, means = self.action_decoder(action_input)
+                alphas, variances, means= self.action_decoder(action_input)
                 action = self.action_decoder.sample(alphas, variances, means)
             else:
                 mean, variance = self.action_decoder(action_input)
@@ -201,7 +205,9 @@ class PlayLMP():
             #cannot compute KL_divergence, only return mixture loss
             action_labels = self.to_tensor(act)
             if self.use_logistics:
-                mix_loss = self.action_decoder.loss(probs, log_scales, means, action_labels)
+                prediction = torch.cat([logit_probs, means, scales], dim=1)
+                target = action_labels.unsqueeze(2)
+                mix_loss = mixtures.discretized_mix_logistic_loss(target, prediction, reduce=True)
             elif(self.num_mixtures > 1):
                 mix_loss = self.action_decoder.loss(alphas, variances, means, action_labels)
             else:
@@ -226,8 +232,13 @@ class PlayLMP():
             pp_input = torch.cat([encoded_imgs[:, 0], obs, encoded_imgs[:,-1]], dim=-1)
             action_input = torch.cat([pp_input, plan], dim=-1).unsqueeze(1)
             if self.use_logistics:
-                probs, log_scales, means = self.action_decoder(action_input)
-                action = self.action_decoder.sample(probs, log_scales, means)
+                logit_probs, scales, means = self.action_decoder(action_input)
+                prediction = torch.cat([logit_probs, means, scales], dim=1)
+                action = mixtures.sample_from_discretized_mix_logistic(prediction)
+
+                #plot predicted mean, scale, logistics
+                if np.random.uniform(low=0.0, high=1.0) > 0.5:
+                    plot.plot_logistic_distribution(prediction, action)
             elif(self.num_mixtures > 1):
                 alphas, variances, means= self.action_decoder(action_input)
                 action = self.action_decoder.sample(alphas, variances, means)

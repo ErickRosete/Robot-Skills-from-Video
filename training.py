@@ -4,11 +4,12 @@ from preprocessing import read_data, preprocess_data, get_filenames, load_data, 
 import utils.constants as constants
 import numpy as np
 from datetime import datetime
+import argparse
 
 if __name__ == "__main__":
     #----------- Parser ------------#
     parser = argparse.ArgumentParser(description='some description')
-    parser.add_argument('--exp_name', dest='exp_name', type=str, default='mws_1_logistics_multitask')
+    parser.add_argument('--exp_name', dest='exp_name', type=str, default='mws_10_logistic_multitask')
     args = parser.parse_args()
     print(args)
     #-------------------------------#
