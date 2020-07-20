@@ -9,7 +9,7 @@ import argparse
 if __name__ == "__main__":
     #----------- Parser ------------#
     parser = argparse.ArgumentParser(description='some description')
-    parser.add_argument('--exp_name', dest='exp_name', type=str, default='mws_10_logistic_multitask')
+    parser.add_argument('--exp_name', dest='exp_name', type=str, default='10_logistic_multitask')
     args = parser.parse_args()
     print(args)
     #-------------------------------#
@@ -19,10 +19,10 @@ if __name__ == "__main__":
     writer = SummaryWriter(summary_name)
     play_lmp = PlayLMP(constants.LEARNING_RATE, constants.BETA, \
                        constants.N_MIXTURES, constants.USE_LOGISTICS)
-    #play_lmp.load("./models/model_b4780.pth")
     
     # ------------ Hyperparams ------------ #
     epochs = constants.N_EPOCH
+    window_size = constants.WINDOW_SIZE
     min_ws = constants.MIN_WINDOWS_SIZE
     max_ws = constants.MAX_WINDOW_SIZE
     val_batch_size = constants.VAL_BATCH_SIZE
@@ -33,8 +33,8 @@ if __name__ == "__main__":
     # ------------ Validation data loading ------------ #
     # Validation data
     validation_paths = read_data("./data/validation")
-    #val_obs, val_imgs, val_acts = preprocess_data(validation_paths, window_size, val_batch_size, True)
-    val_obs, val_imgs, val_acts = mult_wind_preprocessing(validation_paths, min_ws, max_ws, val_batch_size)
+    val_obs, val_imgs, val_acts = preprocess_data(validation_paths, window_size, val_batch_size, True)
+    #val_obs, val_imgs, val_acts = mult_wind_preprocessing(validation_paths, min_ws, max_ws, val_batch_size)
     #Note when preprocesing validation data we return 
     #[current_img, goal_img] , current_obs, current_action
     #then val_imgs=(batch,2,3,300,300), val_acts = (batch,9), val_obs = (batch,9)
@@ -54,8 +54,7 @@ if __name__ == "__main__":
             del training_filenames[:files_to_load]
             print("Reading training data ...")
             training_paths = load_data(curr_filenames)
-            window_size = np.random.randint(min_ws, max_ws + 1)
-            #window_size = constants.WINDOW_SIZE
+            #window_size = np.random.randint(min_ws, max_ws + 1)
             train_obs, train_imgs, train_acts = preprocess_data(training_paths, window_size, batch_size)
             print("Training, number of batches:", len(train_obs))
             print("Training, batch size:", train_obs[0].shape[0])
@@ -79,7 +78,7 @@ if __name__ == "__main__":
                     #Save only the best models
                     if(val_accuracy > best_val_accuracy):
                         best_val_accuracy = val_accuracy
-                        file_name = "./models/%s_b%d_bv.pth" % (exp_name, batch)
+                        file_name = "./models/%s_b%d_ba.pth" % (exp_name, batch)
                         play_lmp.save(file_name)
                     
                     if(val_mix_loss < best_val_loss):
