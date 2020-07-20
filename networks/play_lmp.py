@@ -20,7 +20,7 @@ class PlayLMP():
         self.num_mixtures = num_mixtures
         self.use_logistics = use_logistics
         if use_logistics:
-            self.action_decoder = LogisticPolicyNetwork(num_mixtures).cuda() #default n_mix = 10
+            self.action_decoder = LogisticPolicyNetwork().cuda() #default n_mix = 10
         elif(num_mixtures > 1):
             self.action_decoder = ActionDecoderNetwork(num_mixtures).cuda()
         else:
@@ -124,7 +124,7 @@ class PlayLMP():
         if self.use_logistics:
             prediction = torch.cat([logit_probs, means, scales], dim=1)
             target = acts.unsqueeze(2)
-            mix_loss = mixtures.discretized_mix_logistic_loss(target, prediction, reduce=True)
+            mix_loss = mixtures.discretized_mix_logistic_loss(prediction, target, reduce=True)
         elif(self.num_mixtures > 1):
             mix_loss = self.action_decoder.loss(alphas, variances, means, acts)
         else:
@@ -207,7 +207,7 @@ class PlayLMP():
             if self.use_logistics:
                 prediction = torch.cat([logit_probs, means, scales], dim=1)
                 target = action_labels.unsqueeze(2)
-                mix_loss = mixtures.discretized_mix_logistic_loss(target, prediction, reduce=True)
+                mix_loss = mixtures.discretized_mix_logistic_loss(prediction, target, reduce=True)
             elif(self.num_mixtures > 1):
                 mix_loss = self.action_decoder.loss(alphas, variances, means, action_labels)
             else:
