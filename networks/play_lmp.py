@@ -21,7 +21,7 @@ class PlayLMP():
         self.num_mixtures = num_mixtures
         self.use_logistics = use_logistics
         if use_logistics:
-            self.action_decoder = LogisticPolicyNetwork(num_mixtures).cuda() 
+            self.action_decoder = LogisticPolicyNetwork(num_mixtures).cuda()
         elif(num_mixtures > 1):
             self.action_decoder = ActionDecoderNetwork(num_mixtures).cuda()
         else:
@@ -206,7 +206,7 @@ class PlayLMP():
                 mix_loss = self.action_decoder.loss(alphas, variances, means, action_labels)
             else:
                 mix_loss = self.action_decoder.loss(mean, variance, action_labels)
-            
+
             # ------------ Accuracy ------------ #
             p_actions = action.cpu().detach().numpy().squeeze()
             accuracy = np.isclose(p_actions, act, atol=0.2)
