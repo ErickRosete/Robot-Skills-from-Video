@@ -82,8 +82,8 @@ class PlanRecognitionNetwork(nn.Module):
 
         self.rnn_model = nn.Sequential(
             # bidirectional RNN
-            nn.RNN(input_size=self.in_features, hidden_size=2048, num_layers=2, nonlinearity='relu', bidirectional=True, batch_first=True)
-            #nn.LSTM(input_size=self.in_features, hidden_size=2048, num_layers=2, bidirectional=True, batch_first=True)
+            #nn.RNN(input_size=self.in_features, hidden_size=2048, num_layers=2, nonlinearity='relu', bidirectional=True, batch_first=True)
+            nn.LSTM(input_size=self.in_features, hidden_size=2048, num_layers=2, bidirectional=True, batch_first=True)
             ) # shape: [N, seq_len, 64+8]
         self.mean_fc = nn.Linear(in_features=4096, out_features=constants.PLAN_FEATURES) # shape: [N, seq_len, 4096]
         self.variance_fc = nn.Linear(in_features=4096, out_features=constants.PLAN_FEATURES) # shape: [N, seq_len, 4096]
