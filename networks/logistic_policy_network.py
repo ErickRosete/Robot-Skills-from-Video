@@ -5,11 +5,16 @@ from torch.autograd import Variable
 import utils.constants as constants
 import numpy as np
 
+def one_hot_embedding(labels, num_classes):
+    y = torch.eye(num_classes).cuda() 
+    return y[labels] 
+
 #Smooth approximation to the maximum
 def log_sum_exp(x):
-	m, _ = torch.max(x, -1)
-	m2, _ = torch.max(x, -1, keepdims=True)
-	return m + torch.log(torch.sum(torch.exp(x-m2), -1))
+    axis  = len(x.size()) - 1
+    m, _ = torch.max(x, dim=axis)
+    m2, _ = torch.max(x, dim=axis, keepdims=True)
+    return m + torch.log(torch.sum(torch.exp(x - m2), dim=axis))
 
 def sample_gumbel(shape, eps=1e-20):
     U = torch.rand(shape).cuda()
@@ -32,7 +37,7 @@ def gumbel_softmax(logits, temperature):
 class LogisticPolicyNetwork(nn.Module):
     def __init__(self, n_dist=5):
         super(LogisticPolicyNetwork, self).__init__()
-        self.temp = 1
+        self.log_scale_min = -7.0
         self.in_features = (constants.VISUAL_FEATURES + constants.N_DOF_ROBOT) + \
                             constants.VISUAL_FEATURES + constants.PLAN_FEATURES
         hidden_size = 2048
@@ -44,14 +49,13 @@ class LogisticPolicyNetwork(nn.Module):
         self.log_scale_fc = nn.Linear(hidden_size, self.out_features * self.n_dist)
         self.prob_fc = nn.Linear(hidden_size, self.out_features * self.n_dist)
 
-    def loss(self, probs, log_scales, means, actions, log_scale_min=-7.0, num_classes=256):
+    def loss(self, probs, log_scales, means, actions, num_classes=256):
         #Appropiate scale
-        log_scales = torch.clamp(log_scales, min=log_scale_min)
+        log_scales = torch.clamp(log_scales, min=self.log_scale_min)
         #Transform to logits 
         logit_probs = F.softmax(probs, dim=-1)
         #Brodcast actions (B, A, N_DIST)
-        actions = actions.unsqueeze(-1).expand_as(means)
-
+        actions = actions.unsqueeze(-1) * torch.ones(1, 1, self.n_dist).cuda()
         #Approximation of CDF derivative (PDF)
         centered_actions = actions - means 
         inv_stdv = torch.exp(-log_scales) 
@@ -69,7 +73,6 @@ class LogisticPolicyNetwork(nn.Module):
         #Probability for all other cases 
         cdf_delta = cdf_plus - cdf_min 
 
-
         #Log probability
         log_probs = torch.where(actions < -0.999, log_cdf_plus,
                         torch.where(actions > 0.999, log_one_minus_cdf_min,
@@ -77,21 +80,27 @@ class LogisticPolicyNetwork(nn.Module):
                                 torch.log(torch.clamp(cdf_delta, min=1e-12)),
                                     log_pdf_mid - np.log((num_classes - 1) / 2))))
         log_probs = log_probs + F.log_softmax(logit_probs, dim=-1)
-        loss = torch.sum(log_sum_exp(log_probs), dim=-1).mean()
+        loss = -torch.sum(log_sum_exp(log_probs), dim=-1).mean()
         return loss
     
     #Sampling from logistic distribution
     def sample(self, probs, log_scales, means):
-        #Selecting Logistic distribution (Sampling from Softmax)
-        dist = gumbel_softmax(probs, self.temp) #One hot encoded selection
+        #Selecting Logistic distribution (Gumbel Sample)
+        logit_probs = F.softmax(probs, -1)
+        r1, r2 = 1e-5, 1.-1e-5
+        temp = (r1 - r2) * torch.rand(means.shape).cuda() + r2
+        temp = logit_probs - torch.log(-torch.log(temp)) 
+        argmax = torch.argmax(temp, -1) 
+        dist = one_hot_embedding(argmax, self.n_dist)
+
+        #Select scales and means
+        log_scales = (dist * log_scales).sum(dim=-1)
+        means = (dist * means).sum(dim=-1)
 
         #Inversion sampling for logistic mixture sampling
         scales = torch.exp(log_scales) #Make positive
-        r1, r2 = 1e-5, 1. - 1e-5
         u = (r1 - r2) * torch.rand(means.shape).cuda() + r2
         actions = means + scales * (torch.log(u) - torch.log(1. - u))
-        actions = dist * actions
-        actions = actions.sum(dim=-1)
 
         #Clipping actions within range
         actions = actions.clamp(-0.999, 0.999)
@@ -104,6 +113,7 @@ class LogisticPolicyNetwork(nn.Module):
         probs = self.prob_fc(x)
         means = self.mean_fc(x)
         log_scales = self.log_scale_fc(x)
+        log_scales = torch.clamp(log_scales, min=self.log_scale_min)
         # Appropiate dimensions
         probs = probs.view(batch_size, self.out_features, self.n_dist)
         means = means.view(batch_size, self.out_features, self.n_dist)
