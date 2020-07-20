@@ -165,6 +165,31 @@ def test_model(model, goal_path, show_goal=False, env_steps = 1000, new_plan_fre
         viewer(env, mode='save', filename=save_folder + save_filename)
     env.close()
 
+def parse_reprod_act_vid():
+    eval_filename = "./data/validation/friday_microwave_topknob_bottomknob_slide_0_path.pkl"
+    demo_files = ["friday_topknob_bottomknob_switch_slide_0_path",
+                "friday_microwave_topknob_bottomknob_hinge_0_path",
+                "friday_microwave_kettle_topknob_switch_0_path",
+                "friday_microwave_kettle_topknob_hinge_0_path",
+                "friday_microwave_kettle_switch_slide_0_path",
+                "friday_microwave_kettle_hinge_slide_0_path",
+                "friday_microwave_kettle_bottomknob_slide_0_path",
+                "friday_microwave_kettle_bottomknob_hinge_0_path",
+                "friday_microwave_bottomknob_switch_slide_0_path",
+                "friday_microwave_bottomknob_hinge_slide_0_path",
+                "friday_kettle_topknob_switch_slide_0_path",
+                "friday_kettle_topknob_bottomknob_slide_1_path",
+                "friday_kettle_switch_hinge_slide_0_path",
+                "friday_kettle_bottomknob_switch_slide_0_path",
+                "friday_kettle_bottomknob_hinge_slide_0_path"
+                ]
+
+    for name in demo_files:
+        file_path = "./data/training/"+ name +".pkl"
+        video_name = name[:-5] + "_demo.mp4"
+        reproduce_file_actions(file_path, show_video=False, save_video=True, save_filename = video_name)
+    reproduce_file_actions(eval_filename, show_video=False, save_video=True, save_filename = "friday_microwave_topknob_bottomknob_slide_eval_demo.mp4")
+
 def test(model_file_path, goal_file_path, use_logistics):
     #model init
     model = PlayLMP(constants.LEARNING_RATE, constants.BETA, \
@@ -186,7 +211,13 @@ if __name__ == '__main__':
     # Good models
     # mws_1_gaussian_multitask_b77100
     # mws_1_gaussian_multitask_b41350
-    test(args.model_file_path, args.goal_file_path, args.use_logistics)
+    #test(args.model_file_path, args.goal_file_path, args.use_logistics)
+
+    #----------- Save videos from reproduce files .pkl ------------#
+    # name = "friday_microwave_topknob_bottomknob_slide_0_path"
+    # file_path = "./data/validation/"+ name +".pkl"
+    # video_name = "val_data_0_2.mp4"
+    # reproduce_file_actions(file_path, show_video=False, save_video=True, save_filename = video_name)
+
+    #----------- Print images from val packages ------------#
     #print_img_goals(data_dir = "./data/validation/", i=0, n_packages=1)
-    #demonstration_filename = "./data/validation/friday_microwave_kettle_topknob_hinge_8_path.pkl"
-    #reproduce_file_actions(demonstration_filename, show_video=True, save_video=True, save_filename = "mkth_demo.mp4")
