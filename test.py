@@ -191,12 +191,27 @@ def parse_reprod_act_vid():
     reproduce_file_actions(eval_filename, show_video=False, save_video=True, save_filename = "friday_microwave_topknob_bottomknob_slide_eval_demo.mp4")
 
 def test(model_file_path, goal_file_path, use_logistics):
+    # Good models
+    # plan recognition with RNN instead of LSTM
+    # mws_1_gaussian_multitask_b77100
+    # mws_1_gaussian_multitask_b41350
+    use_logistics = False
+    model_file_path = './models/mws_1_gaussian_multitask_77100.pth'
     #model init
-    model = PlayLMP(constants.LEARNING_RATE, constants.BETA, \
-                      num_mixtures=1, use_logistics=use_logistics)
+    model = PlayLMP(num_mixtures=1, use_logistics=use_logistics)
     model.load(model_file_path)
+
     #test
-    test_model(model, goal_file_path, env_steps=300, new_plan_frec=1, save_video=False, show_video = True, save_filename="MKTH.mp4")
+    goals = ["kettle", "microwave", "bottomknob", "subsequent/kettle_bottomknob_switch"]
+    names = ["kettle", "microwave", "bottomknob", "kettle_bottomknob_switch"]
+    
+    #goals = ["kettle", "bottomknob", "subsequent/kettle_bottomknob", "subsequent/kettle_bottomknob_slide", "subsequent/kettle_bottomknob_slide_hinge"]
+    #names = ["kettle", "bottomknob", "kettle_bottomknob", "kettle_bottomknob_slide", "kettle_bottomknob_slide_hinge"]
+    for goal,name in zip(goals,names):
+        goal_file_path = "./data/goals/"+goal+".png"
+        video_name = "mws_1_gaussian_multitask_77100_npf_30_nonoise_"+name+".mp4"
+        test_model(model, goal_file_path, env_steps=300, new_plan_frec=30, \
+                    save_video=True, show_video = False, save_filename=video_name)
 
 if __name__ == '__main__':
     #----------- Parser ------------#
@@ -211,7 +226,7 @@ if __name__ == '__main__':
     # Good models
     # mws_1_gaussian_multitask_b77100
     # mws_1_gaussian_multitask_b41350
-    #test(args.model_file_path, args.goal_file_path, args.use_logistics)
+    test(args.model_file_path, args.goal_file_path, args.use_logistics)
 
     #----------- Save videos from reproduce files .pkl ------------#
     # name = "friday_microwave_topknob_bottomknob_slide_0_path"

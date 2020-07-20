@@ -117,13 +117,13 @@ class PlayLMP():
             alphas, variances, means= self.action_decoder(action_input)
         else:
             mean, variance = self.action_decoder(action_input)
-        acts = self.to_tensor(acts[:, 0])
+        acts = self.to_tensor(acts[:, 0]) # B,9
 
         # ------------ Loss ------------ #
         kl_loss = D.kl_divergence(pr_dist, pp_dist).mean()
         if self.use_logistics:
             prediction = torch.cat([logit_probs, means, scales], dim=1)
-            target = acts.unsqueeze(2)
+            target = acts.unsqueeze(2) # B,1,9
             mix_loss = mixtures.discretized_mix_logistic_loss(target, prediction, reduce=True)
         elif(self.num_mixtures > 1):
             mix_loss = self.action_decoder.loss(alphas, variances, means, acts)
