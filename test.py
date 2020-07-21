@@ -196,23 +196,23 @@ def test(model_file_path, goal_file_path, use_logistics):
     # mws_1_gaussian_multitask_b77100
     # mws_1_gaussian_multitask_b41350
     use_logistics = True
-    #mws_10_logistic_multitask_b30250_bl
-    model_file_path = './models/mws_10_logistic_multitask_b30050_bv.pth'
+    #mws_10_logistic_multitask_b37050_bl
+    model_file_path = './models/10_logistic_multitask_b82700_ba.pth'
     #model init
     model = PlayLMP(num_mixtures=10, use_logistics=use_logistics)
     model.load(model_file_path)
 
     #test
-    goals = ["kettle", "microwave", "bottomknob", "subsequent/kettle_bottomknob_switch"]
-    names = ["kettle", "microwave", "bottomknob", "kettle_bottomknob_switch"]
+    goals = ["grip_kettle", "grip_microwave"]
+    names = ["grip_kettle", "grip_microwave"]
     
     #goals = ["kettle", "bottomknob", "subsequent/kettle_bottomknob", "subsequent/kettle_bottomknob_slide", "subsequent/kettle_bottomknob_slide_hinge"]
     #names = ["kettle", "bottomknob", "kettle_bottomknob", "kettle_bottomknob_slide", "kettle_bottomknob_slide_hinge"]
     for goal,name in zip(goals,names):
         goal_file_path = "./data/goals/"+goal+".png"
-        video_name = "mws_10_logistic_multitask_b30050_bv_npf_30_"+name+".mp4"
-        test_model(model, goal_file_path, env_steps=400, new_plan_frec=30, \
-                    save_video=True, show_video = False, save_filename=video_name)
+        video_name = "10_logistic_multitask_b82700_ba_npf_1_"+name+".mp4"
+        test_model(model, goal_file_path, env_steps=400, new_plan_frec=1, \
+                    save_video=True, show_video = True, save_filename=video_name)
 
 if __name__ == '__main__':
     #----------- Parser ------------#
