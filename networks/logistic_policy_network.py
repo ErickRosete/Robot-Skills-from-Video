@@ -49,11 +49,9 @@ class LogisticPolicyNetwork(nn.Module):
         self.log_scale_fc = nn.Linear(hidden_size, self.out_features * self.n_dist)
         self.prob_fc = nn.Linear(hidden_size, self.out_features * self.n_dist)
 
-    def loss(self, probs, log_scales, means, actions, num_classes=256):
+    def loss(self, logit_probs, log_scales, means, actions, num_classes=256):
         #Appropiate scale
         log_scales = torch.clamp(log_scales, min=self.log_scale_min)
-        #Transform to logits 
-        logit_probs = F.softmax(probs, dim=-1)
         #Brodcast actions (B, A, N_DIST)
         actions = actions.unsqueeze(-1) * torch.ones(1, 1, self.n_dist).cuda()
         #Approximation of CDF derivative (PDF)
@@ -84,9 +82,8 @@ class LogisticPolicyNetwork(nn.Module):
         return loss
     
     #Sampling from logistic distribution
-    def sample(self, probs, log_scales, means):
+    def sample(self, logit_probs, log_scales, means):
         #Selecting Logistic distribution (Gumbel Sample)
-        logit_probs = F.softmax(probs, -1)
         r1, r2 = 1e-5, 1.-1e-5
         temp = (r1 - r2) * torch.rand(means.shape).cuda() + r2
         temp = logit_probs - torch.log(-torch.log(temp)) 
@@ -107,15 +104,15 @@ class LogisticPolicyNetwork(nn.Module):
         return actions
 
     def forward(self, x):
-        batch_size = x.shape[0]
+        batch_size, seq_len = x.shape[0], x.shape[1]
         x, _ = self.rnn(x)
-        x = x[:, -1] #Get latest output
         probs = self.prob_fc(x)
         means = self.mean_fc(x)
         log_scales = self.log_scale_fc(x)
         log_scales = torch.clamp(log_scales, min=self.log_scale_min)
         # Appropiate dimensions
-        probs = probs.view(batch_size, self.out_features, self.n_dist)
-        means = means.view(batch_size, self.out_features, self.n_dist)
-        log_scales = log_scales.view(batch_size, self.out_features, self.n_dist)
-        return probs, log_scales, means
+        probs = probs.view(batch_size, seq_len, self.out_features, self.n_dist)
+        means = means.view(batch_size, seq_len, self.out_features, self.n_dist)
+        log_scales = log_scales.view(batch_size, seq_len, self.out_features, self.n_dist)
+        logit_probs = F.softmax(probs, -1)
+        return logit_probs, log_scales, means

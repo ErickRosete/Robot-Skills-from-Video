@@ -111,24 +111,27 @@ class PlayLMP():
 
         # ------------ Policy network ------------ #
         sampled_plan = pr_dist.rsample() #sample from recognition net
-        action_input = torch.cat([pp_input, sampled_plan], dim=-1).unsqueeze(1)
+        #action_input = torch.cat([pp_input, sampled_plan], dim=-1).unsqueeze(1)
+        goal_plan = torch.cat([encoded_imgs[:,-1], sampled_plan], dim=-1) #b, 64 + 256
+        goal_plan = goal_plan.unsqueeze(1).expand(-1, s, -1) #b, s, 64 + 256
+        action_input = torch.cat([pr_input, goal_plan], dim=-1) #b, s, 64 + 9 + 64 + 256 (visuo-propio + goal + plan)
         if self.use_logistics:
-            probs, log_scales, means = self.action_decoder(action_input)
+            logit_probs, log_scales, means = self.action_decoder(action_input)
         elif(self.num_mixtures > 1):
             alphas, variances, means= self.action_decoder(action_input)
         else:
             mean, variance = self.action_decoder(action_input)
-        acts = self.to_tensor(acts[:, 0]) # B,9
+        acts = self.to_tensor(acts) # B, S, 9
 
         # ------------ Loss ------------ #
         kl_loss = D.kl_divergence(pr_dist, pp_dist).mean()
         if self.use_logistics:
-            mix_loss = self.action_decoder.loss(probs, log_scales, means, acts)
+            mix_loss = self.action_decoder.loss(logit_probs, log_scales, means, acts)
         elif(self.num_mixtures > 1):
             mix_loss = self.action_decoder.loss(alphas, variances, means, acts)
         else:
             mix_loss = self.action_decoder.loss(mean, variance, acts)
-        total_loss = mix_loss + self.beta * kl_loss
+        total_loss = 1/s * mix_loss + self.beta * kl_loss 
 
         # ------------ Backward pass ------------ #
         self.optimizer.zero_grad()
@@ -188,8 +191,8 @@ class PlayLMP():
             sampled_plan = pp_dist.sample() #sample from proposal net
             action_input = torch.cat([pp_input, sampled_plan], dim=-1).unsqueeze(1)
             if self.use_logistics:
-                probs, log_scales, means = self.action_decoder(action_input)
-                action = self.action_decoder.sample(probs, log_scales, means)
+                logit_probs, log_scales, means = self.action_decoder(action_input)
+                action = self.action_decoder.sample(logit_probs, log_scales, means)
             elif(self.num_mixtures > 1):
                 alphas, variances, means = self.action_decoder(action_input)
                 action = self.action_decoder.sample(alphas, variances, means)
@@ -201,7 +204,8 @@ class PlayLMP():
             #cannot compute KL_divergence, only return mixture loss
             action_labels = self.to_tensor(act)
             if self.use_logistics:
-                mix_loss = self.action_decoder.loss(probs, log_scales, means, action_labels)
+                action_labels = action_labels.unsqueeze(1)
+                mix_loss = self.action_decoder.loss(logit_probs, log_scales, means, action_labels)
             elif(self.num_mixtures > 1):
                 mix_loss = self.action_decoder.loss(alphas, variances, means, action_labels)
             else:

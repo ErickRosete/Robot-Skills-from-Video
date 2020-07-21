@@ -13,9 +13,9 @@ N_LOGITS = 10 # for logistic distributions
 
 # ------------ Training constants  ------------ #
 N_EPOCH = 10
-WINDOW_SIZE = 12
+WINDOW_SIZE = 14
 MIN_WINDOWS_SIZE = 8
-MAX_WINDOW_SIZE = 15
+MAX_WINDOW_SIZE = 16
 VAL_BATCH_SIZE = 50
 TRAIN_BATCH_SIZE = 8
 FILES_TO_LOAD = 1 # Files to load during training simultaneously

@@ -152,7 +152,7 @@ def test_model(model, goal_path, show_goal=False, env_steps = 1000, new_plan_fre
         #prediction
         if(i % new_plan_frec == 0):
             plan = model.get_pp_plan(current_obs,current_and_goal)
-        action = model.predict_with_plan(current_obs, current_and_goal, plan).squeeze(0) #(9)
+        action = model.predict_with_plan(current_obs, current_and_goal, plan).squeeze() #(9)
         #action = model.predict(current_obs, current_and_goal).squeeze(0) #(9) new plan every step
         s , r, _, _ = env.step(action.cpu().detach().numpy())
         if(i % render_skip == 0):
@@ -195,10 +195,10 @@ def test(model_file_path, goal_file_path, use_logistics):
     # plan recognition with RNN instead of LSTM
     # mws_1_gaussian_multitask_b77100
     # mws_1_gaussian_multitask_b41350
-    use_logistics = False
-    model_file_path = './models/mws_1_gaussian_multitask_77100.pth'
+    use_logistics = True
+    model_file_path = './models/10_logistic_multitask_b34800_ba.pth'
     #model init
-    model = PlayLMP(num_mixtures=1, use_logistics=use_logistics)
+    model = PlayLMP(num_mixtures=10, use_logistics=use_logistics)
     model.load(model_file_path)
 
     #test
@@ -210,8 +210,8 @@ def test(model_file_path, goal_file_path, use_logistics):
     for goal,name in zip(goals,names):
         goal_file_path = "./data/goals/"+goal+".png"
         video_name = "mws_1_gaussian_multitask_77100_npf_30_nonoise_"+name+".mp4"
-        test_model(model, goal_file_path, env_steps=300, new_plan_frec=30, \
-                    save_video=True, show_video = False, save_filename=video_name)
+        test_model(model, goal_file_path, env_steps=300, new_plan_frec=8, \
+                    save_video=False, show_video = True, save_filename=video_name)
 
 if __name__ == '__main__':
     #----------- Parser ------------#
