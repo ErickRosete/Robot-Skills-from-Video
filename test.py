@@ -196,7 +196,7 @@ def test(model_file_path, goal_file_path, use_logistics):
     # mws_1_gaussian_multitask_b77100
     # mws_1_gaussian_multitask_b41350
     use_logistics = True
-    model_file_path = './models/10_logistic_multitask_b34800_ba.pth'
+    model_file_path = './models/10_logistic_multitask_b11650_bl.pth'
     #model init
     model = PlayLMP(num_mixtures=10, use_logistics=use_logistics)
     model.load(model_file_path)
@@ -210,7 +210,7 @@ def test(model_file_path, goal_file_path, use_logistics):
     for goal,name in zip(goals,names):
         goal_file_path = "./data/goals/"+goal+".png"
         video_name = "mws_1_gaussian_multitask_77100_npf_30_nonoise_"+name+".mp4"
-        test_model(model, goal_file_path, env_steps=300, new_plan_frec=8, \
+        test_model(model, goal_file_path, env_steps=300, new_plan_frec=1, \
                     save_video=False, show_video = True, save_filename=video_name)
 
 if __name__ == '__main__':
