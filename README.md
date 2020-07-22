@@ -5,6 +5,8 @@ Packages needed:
   * Tensorboard
   * Pytorch
   * Numpy
+  * Matplotlib
+  * Scipy
   * CV2
 * Additional packages for testing:
   * Mujoco
