@@ -1,6 +1,6 @@
 # LMP
 
-<h2> Packages needed <h2>
+Packages needed:
 * Train:
   * Tensorboard
   * Pytorch
