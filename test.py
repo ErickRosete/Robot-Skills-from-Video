@@ -130,8 +130,9 @@ def test_model(model, goal_path, show_goal=False, env_steps = 1000, new_plan_fre
     #Env init
     gym_env = gym.make('kitchen_relax-v1')
     env = gym_env.env
+    init_env(env, "./data/overfit_validation/friday_kettle_bottomknob_hinge_slide_22_path.pkl")
+    
     s = env.reset()
-
     #init viewer utility
     FPS = 10
     render_skip = max(1, round(1. / \
@@ -191,26 +192,22 @@ def parse_reprod_act_vid():
     reproduce_file_actions(eval_filename, show_video=False, save_video=True, save_filename = "friday_microwave_topknob_bottomknob_slide_eval_demo.mp4")
 
 def test(model_file_path, goal_file_path, use_logistics):
-    # Good models
-    # plan recognition with RNN instead of LSTM
-    # mws_1_gaussian_multitask_b77100
-    # mws_1_gaussian_multitask_b41350
     use_logistics = True
-    model_file_path = './models/10_logistic_multitask_b11650_bl.pth'
+    
     #model init
+    #model_file_path = './models/fit_10_logistic_multitask_accuracy.pth'
+    model_file_path = './models/fit_10_logistic_multitask_bestloss.pth'
     model = PlayLMP(num_mixtures=10, use_logistics=use_logistics)
     model.load(model_file_path)
 
     #test
-    goals = ["kettle", "microwave", "bottomknob", "subsequent/kettle_bottomknob_switch"]
-    names = ["kettle", "microwave", "bottomknob", "kettle_bottomknob_switch"]
-    
-    #goals = ["kettle", "bottomknob", "subsequent/kettle_bottomknob", "subsequent/kettle_bottomknob_slide", "subsequent/kettle_bottomknob_slide_hinge"]
-    #names = ["kettle", "bottomknob", "kettle_bottomknob", "kettle_bottomknob_slide", "kettle_bottomknob_slide_hinge"]
+    sample_new_plan = 30
+    goals = ["kettle", "bottomknob", "subsequent/kettle_bottomknob_slide"]
+    names = ["kettle", "bottomknob", "kettle_bottomknob_slide"]
     for goal,name in zip(goals,names):
         goal_file_path = "./data/goals/"+goal+".png"
-        video_name = "mws_1_gaussian_multitask_77100_npf_30_nonoise_"+name+".mp4"
-        test_model(model, goal_file_path, env_steps=300, new_plan_frec=1, \
+        video_name = "fit_10_logistic_multitask_bestloss_npf_%d"%(sample_new_plan)+name+".mp4"
+        test_model(model, goal_file_path, env_steps=300, new_plan_frec=sample_new_plan, \
                     save_video=False, show_video = True, save_filename=video_name)
 
 if __name__ == '__main__':
