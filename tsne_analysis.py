@@ -44,8 +44,7 @@ def compute_tsne(batch_size = 32, method = "pp", save_name = "clusters",\
     #print("Observation shape", data_obs[0].shape)
 
     #initialize model
-    model = PlayLMP(constants.LEARNING_RATE, constants.BETA, \
-                    n_mix, logistic)
+    model = PlayLMP(num_mixtures=n_mix, use_logistics=logistic)
     model.load(model_path)
 
     X = []
@@ -64,7 +63,7 @@ def compute_tsne(batch_size = 32, method = "pp", save_name = "clusters",\
     X = TSNE(n_components=2).fit_transform(X) #(batch, 2)
     
     #form clusters
-    clusters = DBSCAN(eps=2, min_samples=5)
+    clusters = DBSCAN(eps=1.5, min_samples=3)
     labels = clusters.fit_predict(X)
 
     #Plots
@@ -83,9 +82,9 @@ def compute_tsne(batch_size = 32, method = "pp", save_name = "clusters",\
     return labels, data_imgs
 
 def plan_proposal_analysis(model_path="./models/model_b62880.pth"):
-    cluster_labels, seq_imgs = compute_tsne(batch_size = 100, method ="pp", save_name = "proposal_clusters",\
+    cluster_labels, seq_imgs = compute_tsne(batch_size = 50, method ="pp", save_name = "proposal_clusters",\
                                              n_filenames=5, plot_n_batches = 3, model_path= model_path,\
-                                             window_size=16, n_mix=1, logistic=False)
+                                             window_size=32, n_mix=10, logistic=True)
     save_imgs(cluster_labels, seq_imgs, save_dir ="./results/proposal_clusters/")
 
 def plan_recognition_analysis(model_path="./models/model_b62880.pth"):
@@ -99,5 +98,5 @@ def plan_recognition_analysis(model_path="./models/model_b62880.pth"):
         print(e)
 
 if __name__ == '__main__':
-    plan_proposal_analysis(model_path="./models/model_b62880.pth")
+    plan_proposal_analysis(model_path="./models/10_logistic_multitask_b82700_ba.pth")
     #plan_recognition_analysis(model_path="./models/model_b62880.pth")
