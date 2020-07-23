@@ -9,7 +9,7 @@ import argparse
 if __name__ == "__main__":
     #----------- Parser ------------#
     parser = argparse.ArgumentParser(description='some description')
-    parser.add_argument('--exp_name', dest='exp_name', type=str, default='fit_10_logistic_multitask')
+    parser.add_argument('--exp_name', dest='exp_name', type=str, default='10_logistic_multitask')
     args = parser.parse_args()
     print(args)
     #-------------------------------#
@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     # ------------ Validation data loading ------------ #
     # Validation data
-    validation_paths = read_data("./data/overfit_validation")
+    validation_paths = read_data("./data/validation")
     val_obs, val_imgs, val_acts = preprocess_data(validation_paths, window_size, val_batch_size, True)
     #val_obs, val_imgs, val_acts = mult_wind_preprocessing(validation_paths, min_ws, max_ws, val_batch_size)
     #Note when preprocesing validation data we return 
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     batch = 0
     best_val_accuracy, best_val_loss = 0, float('inf')
     for epoch in range(epochs):
-        training_filenames = get_filenames("./data/overfit_training")
+        training_filenames = get_filenames("./data/training")
         # ------------ Filenames loop ------------ #
         while len(training_filenames) > 0:
             # ------------ Load training data ------------ #
