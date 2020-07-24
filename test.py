@@ -116,56 +116,6 @@ def reproduce_file_actions(load_file, save_folder = "./analysis/videos/reproduce
         viewer(env, mode='save', filename=save_folder + save_filename)
     env.close()
 
-#model is the already loaded model
-#new_plan is the number of iterations that we wait before sampling a new plan
-def test_model(model, goal_path, show_goal=False, env_steps = 1000, new_plan_frec = 20 , show_video = False,save_video=False, save_folder="./analysis/videos/model_trials/", save_filename="video.mp4"):
-    #load goal
-    goal = plt.imread(goal_path) #read as RGB, blue shelfs
-    if(show_goal):
-        plt.axis('off')
-        plt.suptitle("Goal")
-        plt.imshow(goal)
-        plt.show()
-
-    #Env init
-    gym_env = gym.make('kitchen_relax-v1')
-    env = gym_env.env
-    init_env(env, "./data/overfit_validation/friday_kettle_bottomknob_hinge_slide_22_path.pkl")
-    
-    s = env.reset()
-    #init viewer utility
-    FPS = 10
-    render_skip = max(1, round(1. / \
-        (FPS * env.sim.model.opt.timestep * env.frame_skip)))
-    viewer(env, mode='initialize')
-
-    #take actions
-    for i in tqdm(range(env_steps)):
-        curr_img = env.render(mode='rgb_array')
-        curr_img = cv2.resize(curr_img , (300,300))
-
-        #goal_path = "./data/goals/friday_microwave_kettle_topknob_hinge_0_path_img_%d.png" % (i+16)
-        #goal = plt.imread(goal_path) #read as RGB, blue shelfs
-        current_and_goal = np.stack((curr_img, goal) , axis=0) #(2, 300, 300, 3)
-        current_and_goal = np.expand_dims(current_and_goal.transpose(0,3,1,2), axis=0) #(1, 2, 3, 300, 300)
-        current_obs = np.expand_dims(s[:9], axis=0) #(1,9)
-
-        #prediction
-        if(i % new_plan_frec == 0):
-            plan = model.get_pp_plan(current_obs,current_and_goal)
-        action = model.predict_with_plan(current_obs, current_and_goal, plan).squeeze() #(9)
-        #action = model.predict(current_obs, current_and_goal).squeeze(0) #(9) new plan every step
-        s , r, _, _ = env.step(action.cpu().detach().numpy())
-        if(i % render_skip == 0):
-            viewer(env, mode='render', render=show_video)
-
-    #Save model
-    if(save_video):
-        if not os.path.exists(save_folder):
-            os.makedirs(save_folder)
-        viewer(env, mode='save', filename=save_folder + save_filename)
-    env.close()
-
 def parse_reprod_act_vid():
     eval_filename = "./data/validation/friday_microwave_topknob_bottomknob_slide_0_path.pkl"
     demo_files = ["friday_topknob_bottomknob_switch_slide_0_path",
@@ -186,35 +136,134 @@ def parse_reprod_act_vid():
                 ]
 
     for name in demo_files:
+        #save training videos
         file_path = "./data/training/"+ name +".pkl"
         video_name = name[:-5] + "_demo.mp4"
         reproduce_file_actions(file_path, show_video=False, save_video=True, save_filename = video_name)
+
+    #save evaluation file video
     reproduce_file_actions(eval_filename, show_video=False, save_video=True, save_filename = "friday_microwave_topknob_bottomknob_slide_eval_demo.mp4")
+
+def test_model(model, goal_path, show_goal=False, env_steps = 1000, new_plan_frec = 20 , show_video = False,save_video=False, save_folder="./analysis/videos/model_trials/", save_filename="video.mp4"):
+    #load goal
+    goal = plt.imread(goal_path)#read as RGB, blue shelfs
+    if(show_goal):
+        plt.axis('off')
+        plt.suptitle("Goal")
+        plt.imshow(goal)
+        plt.show()
+    goal = np.rint(goal*255).astype(int) #change to model scale
+    #Env init
+    gym_env = gym.make('kitchen_relax-v1')
+    env = gym_env.env
+    
+    s = env.reset()
+    #init viewer utility
+    FPS = 10
+    render_skip = max(1, round(1. / \
+        (FPS * env.sim.model.opt.timestep * env.frame_skip)))
+    viewer(env, mode='initialize')
+
+    #take actions
+    for i in tqdm(range(env_steps)):
+        curr_img = env.render(mode='rgb_array')   
+        curr_img = cv2.resize(curr_img , (300,300))
+        
+        current_and_goal = np.stack((curr_img, goal) , axis=0) #(2, 300, 300, 3)
+        current_and_goal = np.expand_dims(current_and_goal.transpose(0,3,1,2), axis=0) #(1, 2, 3, 300, 300)
+        current_obs = np.expand_dims(s[:9], axis=0) #(1,9)
+
+        #prediction
+        if(i % new_plan_frec == 0):
+            plan = model.get_pp_plan(current_obs,current_and_goal)
+        action = model.predict_with_plan(current_obs, current_and_goal, plan).squeeze() #(9)
+        #action = model.predict(current_obs, current_and_goal).squeeze(0) #(9) new plan every step
+        s , r, _, _ = env.step(action.cpu().detach().numpy())
+        if(i % render_skip == 0):
+            viewer(env, mode='render', render=show_video)
+
+    #Save model
+    if(save_video):
+        if not os.path.exists(save_folder):
+            os.makedirs(save_folder)
+        viewer(env, mode='save', filename=save_folder + save_filename)
+    env.close()
+
+def test_model_seq_goals(model, goal_path_lst, env_steps = 1000, new_plan_frec = 20 , show_video = False,save_video=False, save_folder="./analysis/videos/model_trials/", save_filename="video.mp4"):
+    
+    #load goal
+    goal = plt.imread(goal_path_lst.pop()) #read as RGB, blue shelfs
+    goal = np.rint(goal*255).astype(int) #change to model scale
+
+    #Env init
+    gym_env = gym.make('kitchen_relax-v1')
+    env = gym_env.env
+    
+    s = env.reset()
+    #init viewer utility
+    FPS = 10
+    render_skip = max(1, round(1. / \
+        (FPS * env.sim.model.opt.timestep * env.frame_skip)))
+    viewer(env, mode='initialize')
+
+    #take actions
+    for i in tqdm(range(env_steps)):
+        curr_img = env.render(mode='rgb_array')
+        curr_img = cv2.resize(curr_img , (300,300))
+
+        if(not goal_path_lst and (i % new_plan_frec) == 0):#list not empty
+            goal = plt.imread(goal_path_lst.pop()) #read as RGB, blue shelfs
+            goal = np.rint(goal*255).astype(int) #change to model scale
+
+        current_and_goal = np.stack((curr_img, goal) , axis=0) #(2, 300, 300, 3)
+        current_and_goal = np.expand_dims(current_and_goal.transpose(0,3,1,2), axis=0) #(1, 2, 3, 300, 300)
+        current_obs = np.expand_dims(s[:9], axis=0) #(1,9)
+
+        #new plan and goal every x steps
+        if(i % new_plan_frec == 0):
+            plan = model.get_pp_plan(current_obs,current_and_goal)
+            if(not goal_path_lst):#list not empty
+                goal = plt.imread(goal_path_lst.pop()) #read as RGB, blue shelfs
+
+        action = model.predict_with_plan(current_obs, current_and_goal, plan).squeeze() #(9)
+        #action = model.predict(current_obs, current_and_goal).squeeze(0) #(9) new plan every step
+        s , r, _, _ = env.step(action.cpu().detach().numpy())
+        if(i % render_skip == 0):
+            viewer(env, mode='render', render=show_video)
+
+    #Save model
+    if(save_video):
+        if not os.path.exists(save_folder):
+            os.makedirs(save_folder)
+        viewer(env, mode='save', filename=save_folder + save_filename)
+    env.close()
 
 def test(model_file_path, goal_file_path, use_logistics):
     use_logistics = True
     
     #model init
     #model_file_path = './models/fit_10_logistic_multitask_accuracy.pth'
-    model_file_path = './models/fit_10_logistic_multitask_bestloss.pth'
+    model_name = "10_logistic_multitask_bestacc"
+    model_file_path = './models/%s.pth'%model_name
     model = PlayLMP(num_mixtures=10, use_logistics=use_logistics)
     model.load(model_file_path)
 
     #test
-    sample_new_plan = 30
-    goals = ["kettle", "bottomknob", "subsequent/kettle_bottomknob_slide"]
-    names = ["kettle", "bottomknob", "kettle_bottomknob_slide"]
+    sample_new_plan = 15
+    goals = [ "subsequent/microwave_kettle", "subsequent/kettle_switch", "subsequent/microwave_bottomknob_topknob"] #["grip_microwave", "microwave", "kettle"]
+    names = [ "microwave_kettle", "kettle_switch", "microwave_bottomknob_topknob"] #["grip_microwave", "microwave", "kettle"]
+    goals_path = []
     for goal,name in zip(goals,names):
         goal_file_path = "./data/goals/"+goal+".png"
-        video_name = "fit_10_logistic_multitask_bestloss_npf_%d"%(sample_new_plan)+name+".mp4"
-        test_model(model, goal_file_path, env_steps=300, new_plan_frec=sample_new_plan, \
-                    save_video=False, show_video = True, save_filename=video_name)
+        video_name = "%s_npf_%d_"%(model_name, sample_new_plan)+name+".mp4"
+        test_model(model, goal_file_path, show_goal=False, env_steps=300, new_plan_frec=sample_new_plan, \
+                    save_video=True, show_video = False, save_filename=video_name)
 
 if __name__ == '__main__':
     #----------- Parser ------------#
     parser = argparse.ArgumentParser(description='some description')
     parser.add_argument('--goal_file_path', dest='goal_file_path', type=str, default='./data/goals/microwave.png')
-    parser.add_argument('--model_file_path', dest='model_file_path', type=str, default='./models/1_gaussian_multitask.pth')
+    parser.add_argument('--model_name', dest='model_file_path', type=str, default='1_gaussian_multitask.pth')
     parser.add_argument('--use_logistics', dest='use_logistics', type=bool, default=True)
     args = parser.parse_args()
     print(args)
