@@ -78,12 +78,12 @@ if __name__ == "__main__":
                     #Save only the best models
                     if(val_accuracy > best_val_accuracy):
                         best_val_accuracy = val_accuracy
-                        file_name = "./models/%s_b%d_ba.pth" % (exp_name, batch)
+                        file_name = "./models/%s_bestacc.pth" % (exp_name)
                         play_lmp.save(file_name)
-                    
+                        
                     if(val_mix_loss < best_val_loss):
                         best_val_loss = val_mix_loss
-                        file_name = "./models/%s_b%d_bl.pth" % (exp_name, batch)
+                        file_name = "./models/%s_bestloss.pth" % (exp_name)
                         play_lmp.save(file_name)
                     
                     #Log to tensorboard
