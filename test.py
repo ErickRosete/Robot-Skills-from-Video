@@ -249,15 +249,16 @@ def test(model_file_path, goal_file_path, use_logistics):
     model.load(model_file_path)
 
     #test
-    sample_new_plan = 15
-    goals = [ "subsequent/microwave_kettle", "subsequent/kettle_switch", "subsequent/microwave_bottomknob_topknob"] #["grip_microwave", "microwave", "kettle"]
-    names = [ "microwave_kettle", "kettle_switch", "microwave_bottomknob_topknob"] #["grip_microwave", "microwave", "kettle"]
+    sample_new_plan = 1
+    #[ "subsequent/microwave_kettle", "subsequent/kettle_switch", "subsequent/microwave_bottomknob_topknob"]
+    goals = ["bottomknob", "microwave", "kettle"]
+    names = ["bottomknob", "microwave", "kettle"]
     goals_path = []
     for goal,name in zip(goals,names):
         goal_file_path = "./data/goals/"+goal+".png"
         video_name = "%s_npf_%d_"%(model_name, sample_new_plan)+name+".mp4"
         test_model(model, goal_file_path, show_goal=False, env_steps=300, new_plan_frec=sample_new_plan, \
-                    save_video=True, show_video = False, save_filename=video_name)
+                    save_video=True, show_video = True, save_filename=video_name)
 
 if __name__ == '__main__':
     #----------- Parser ------------#

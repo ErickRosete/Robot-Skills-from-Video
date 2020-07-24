@@ -85,7 +85,7 @@ def plan_proposal_analysis(model_path="./models/model_b62880.pth"):
     cluster_labels, seq_imgs = compute_tsne(batch_size = 50, method ="pp", save_name = "proposal_clusters",\
                                              n_filenames=5, plot_n_batches = 3, model_path= model_path,\
                                              window_size=32, n_mix=10, logistic=True)
-    save_imgs(cluster_labels, seq_imgs, save_dir ="./results/proposal_clusters/")
+    save_imgs(cluster_labels, seq_imgs, save_dir ="./analysis/tsne_results/proposal_clusters/")
 
 def plan_recognition_analysis(model_path="./models/model_b62880.pth"):
     cluster_labels, seq_imgs = compute_tsne(batch_size = 10, method = "pr", save_name = "recognition_clusters",\
@@ -93,10 +93,10 @@ def plan_recognition_analysis(model_path="./models/model_b62880.pth"):
                                             window_size = 8, n_mix = 1, logistic = False)#pp or pr
     #skip_frames =  Win_size//n_imgs - 1
     try:
-        save_imgs(cluster_labels, seq_imgs, skip_frames=9, save_dir ="./results/recognition_clusters/")
+        save_imgs(cluster_labels, seq_imgs, skip_frames=9, save_dir ="./analysis/tsne_results/recognition_clusters/")
     except Exception as e:
         print(e)
 
 if __name__ == '__main__':
-    plan_proposal_analysis(model_path="./models/10_logistic_multitask_b82700_ba.pth")
+    plan_proposal_analysis(model_path="./models/10_logistic_multitask_bestacc.pth")
     #plan_recognition_analysis(model_path="./models/model_b62880.pth")
