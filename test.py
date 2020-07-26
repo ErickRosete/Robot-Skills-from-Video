@@ -14,6 +14,8 @@ import utils.constants as constants
 import skvideo.io
 import argparse
 from tqdm import tqdm
+import keyboard
+import time 
 
 #Load actions from .pkl file. Use absolute path including extension name
 def load_actions_data(file_name):
@@ -77,11 +79,11 @@ def viewer(env, mode='initialize', filename='video', render=False):
         if render == True:
             env.render()
         curr_frame = env.render(mode='rgb_array')
-        curr_frame = cv2.resize(curr_frame , (curr_frame.shape[1]//3, curr_frame.shape[0]//3))
+        curr_frame = cv2.resize(curr_frame , (curr_frame.shape[1]//3 -1, curr_frame.shape[0]//3)) #"852x640"
         render_buffer.append(curr_frame)
 
     if mode == 'save':
-        skvideo.io.vwrite(filename, np.asarray(render_buffer))
+        skvideo.io.vwrite(filename, np.asarray(render_buffer), outputdict={"-pix_fmt": "yuv420p"})
         print("\n Video saved", filename)
 
 #Reproduced saved actions from file in the env. Optionally save a video.
@@ -177,7 +179,6 @@ def test_model(model, goal_path, show_goal=False, env_steps = 1000, new_plan_fre
         if(i % new_plan_frec == 0):
             plan = model.get_pp_plan(current_obs,current_and_goal)
         action = model.predict_with_plan(current_obs, current_and_goal, plan).squeeze() #(9)
-        #action = model.predict(current_obs, current_and_goal).squeeze(0) #(9) new plan every step
         s , r, _, _ = env.step(action.cpu().detach().numpy())
         if(i % render_skip == 0):
             viewer(env, mode='render', render=show_video)
@@ -189,10 +190,14 @@ def test_model(model, goal_path, show_goal=False, env_steps = 1000, new_plan_fre
         viewer(env, mode='save', filename=save_folder + save_filename)
     env.close()
 
-def test_model_seq_goals(model, goal_path_lst, env_steps = 1000, new_plan_frec = 20 , show_video = False,save_video=False, save_folder="./analysis/videos/model_trials/", save_filename="video.mp4"):
-    
+def test_model_seq_goals(model, goal_lst, env_steps = 1000, new_plan_frec = 20 , \
+    show_video = False,save_video=False, save_folder="./analysis/videos/model_trials/", save_filename="video.mp4"):
+    print("Test subsequent goals... press n to change goal")
+    print("Goal list:", goal_lst)
+    new_goal = goal_lst.pop(0)
+    print("first goal: ", new_goal)
     #load goal
-    goal = plt.imread(goal_path_lst.pop()) #read as RGB, blue shelfs
+    goal = plt.imread(new_goal) #read as RGB, blue shelfs
     goal = np.rint(goal*255).astype(int) #change to model scale
 
     #Env init
@@ -208,29 +213,38 @@ def test_model_seq_goals(model, goal_path_lst, env_steps = 1000, new_plan_frec =
 
     #take actions
     for i in tqdm(range(env_steps)):
-        curr_img = env.render(mode='rgb_array')
+        curr_img = env.render(mode='rgb_array')   
         curr_img = cv2.resize(curr_img , (300,300))
-
-        if(not goal_path_lst and (i % new_plan_frec) == 0):#list not empty
-            goal = plt.imread(goal_path_lst.pop()) #read as RGB, blue shelfs
-            goal = np.rint(goal*255).astype(int) #change to model scale
-
+        
         current_and_goal = np.stack((curr_img, goal) , axis=0) #(2, 300, 300, 3)
         current_and_goal = np.expand_dims(current_and_goal.transpose(0,3,1,2), axis=0) #(1, 2, 3, 300, 300)
         current_obs = np.expand_dims(s[:9], axis=0) #(1,9)
 
-        #new plan and goal every x steps
+        #prediction
         if(i % new_plan_frec == 0):
             plan = model.get_pp_plan(current_obs,current_and_goal)
-            if(not goal_path_lst):#list not empty
-                goal = plt.imread(goal_path_lst.pop()) #read as RGB, blue shelfs
-
         action = model.predict_with_plan(current_obs, current_and_goal, plan).squeeze() #(9)
-        #action = model.predict(current_obs, current_and_goal).squeeze(0) #(9) new plan every step
         s , r, _, _ = env.step(action.cpu().detach().numpy())
         if(i % render_skip == 0):
             viewer(env, mode='render', render=show_video)
+        
+        ############ change goal #############
+        if keyboard.is_pressed("n"):
+            if(goal_lst): #list not empty
+                new_goal = goal_lst.pop(0)
+                print("Changing goal..")
+                print("New goal", new_goal)
+                print("Goals left:", goal_lst)
+                goal = plt.imread(new_goal) #read as RGB, blue shelfs
+                goal = np.rint(goal*255).astype(int) #change to model scale
+                time.sleep(1)
+                print("Continue execution..")
+            else:
+                print("empty goal list")
+        ########################################
 
+        if(i % render_skip == 0):
+            viewer(env, mode='render', render=show_video)
     #Save model
     if(save_video):
         if not os.path.exists(save_folder):
@@ -238,12 +252,30 @@ def test_model_seq_goals(model, goal_path_lst, env_steps = 1000, new_plan_frec =
         viewer(env, mode='save', filename=save_folder + save_filename)
     env.close()
 
+def test_subsequent():
+    use_logistics = True
+    #model init
+    #10_logistic_multitask_bestaccb40k"
+    model_name = "10_logistic_multitask_bestacc_l"
+    model_file_path = './models/%s.pth'%model_name
+    model = PlayLMP(num_mixtures=10, use_logistics=use_logistics)
+    model.load(model_file_path)
+
+    #test
+    sample_new_plan = 1
+    goal_lst = ["kettle", "microwave"]
+    goal_lst = ["./data/goals/"+goal+".png" for goal in goal_lst]
+
+    video_name = "Test_multiple_goals_1.mp4"
+    test_model_seq_goals(model, goal_lst, env_steps = 500, new_plan_frec = sample_new_plan , \
+                         show_video = True, save_video = True, save_filename=video_name)
+
 def test(model_file_path, goal_file_path, use_logistics):
     use_logistics = True
     
     #model init
     #model_file_path = './models/fit_10_logistic_multitask_accuracy.pth'
-    model_name = "10_logistic_multitask_bestacc"
+    model_name = "10_logistic_multitask_bestacc_1"
     model_file_path = './models/%s.pth'%model_name
     model = PlayLMP(num_mixtures=10, use_logistics=use_logistics)
     model.load(model_file_path)
@@ -251,13 +283,13 @@ def test(model_file_path, goal_file_path, use_logistics):
     #test
     sample_new_plan = 1
     #[ "subsequent/microwave_kettle", "subsequent/kettle_switch", "subsequent/microwave_bottomknob_topknob"]
-    goals = ["bottomknob", "microwave", "kettle"]
-    names = ["bottomknob", "microwave", "kettle"]
+    goals = ["microwave", "kettle"]
+    names = ["microwave", "kettle"]
     goals_path = []
     for goal,name in zip(goals,names):
         goal_file_path = "./data/goals/"+goal+".png"
-        video_name = "%s_npf_%d_"%(model_name, sample_new_plan)+name+".mp4"
-        test_model(model, goal_file_path, show_goal=False, env_steps=300, new_plan_frec=sample_new_plan, \
+        video_name = "%s_npf_%d_"%(model_name, sample_new_plan)+name+"testrender.mp4"
+        test_model(model, goal_file_path, show_goal=False, env_steps=200, new_plan_frec=sample_new_plan, \
                     save_video=True, show_video = True, save_filename=video_name)
 
 if __name__ == '__main__':
@@ -269,11 +301,13 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print(args)
     #-------------------------------#
-
+    
+    #test_subsequent()
     # Good models
     # mws_1_gaussian_multitask_b77100
     # mws_1_gaussian_multitask_b41350
     test(args.model_file_path, args.goal_file_path, args.use_logistics)
+
 
     #----------- Save videos from reproduce files .pkl ------------#
     # name = "friday_microwave_topknob_bottomknob_slide_0_path"
