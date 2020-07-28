@@ -275,22 +275,31 @@ def test(model_file_path, goal_file_path, use_logistics):
     
     #model init
     #model_file_path = './models/fit_10_logistic_multitask_accuracy.pth'
-    model_name = "10_logistic_multitask_bestacc_1"
+    model_name = "10_logistic_multitask_bestacc"
     model_file_path = './models/%s.pth'%model_name
     model = PlayLMP(num_mixtures=10, use_logistics=use_logistics)
     model.load(model_file_path)
 
-    #test
-    sample_new_plan = 1
     #[ "subsequent/microwave_kettle", "subsequent/kettle_switch", "subsequent/microwave_bottomknob_topknob"]
-    goals = ["microwave", "kettle"]
-    names = ["microwave", "kettle"]
-    goals_path = []
+    goals = ["microwave", "kettle", "bottomknob"]
+    names = ["microwave", "kettle", "bottomknob"]
+    save_parent_dir = "./analysis/videos/model_trials/"
+    
+    #create folders
+    for name in names:
+        save_folder = save_parent_dir + name +"/"
+        if not os.path.exists(save_folder):
+                    os.makedirs(save_folder)
+    
+    #Save videos
+    n_runs = 1
+    sample_new_plan = 10
     for goal,name in zip(goals,names):
-        goal_file_path = "./data/goals/"+goal+".png"
-        video_name = "%s_npf_%d_"%(model_name, sample_new_plan)+name+"testrender.mp4"
-        test_model(model, goal_file_path, show_goal=False, env_steps=200, new_plan_frec=sample_new_plan, \
-                    save_video=True, show_video = True, save_filename=video_name)
+        for i in range(n_runs): #save n_runs videos for each goal
+            goal_file_path = "./data/goals/"+goal+".png"
+            video_name = "%s_npf_%d_"%(model_name, sample_new_plan)+name+"(%d).mp4"%i
+            test_model(model, goal_file_path, show_goal=False, env_steps=300, new_plan_frec=sample_new_plan, \
+                        save_video=True, show_video = False, save_folder=save_parent_dir+name+"/", save_filename=video_name)
 
 if __name__ == '__main__':
     #----------- Parser ------------#
