@@ -83,7 +83,7 @@ def viewer(env, mode='initialize', filename='video', render=False):
         render_buffer.append(curr_frame)
 
     if mode == 'save':
-        skvideo.io.vwrite(filename, np.asarray(render_buffer), outputdict={"-pix_fmt": "yuv420p"})
+        skvideo.io.vwrite(filename, np.asarray(render_buffer), outputdict={"-pix_fmt": "yuv420p"},verbosity=1)
         print("\n Video saved", filename)
 
 #Reproduced saved actions from file in the env. Optionally save a video.
@@ -111,7 +111,8 @@ def reproduce_file_actions(load_file, save_folder = "./analysis/videos/reproduce
         s , r, _, _ = env.step(action)
         if(i % render_skip == 0):
             viewer(env, mode='render', render=show_video)
-
+    
+    #save_video
     if(save_video):
         if not os.path.exists(save_folder):
                 os.makedirs(save_folder)
@@ -241,6 +242,9 @@ def test_model_seq_goals(model, goal_lst, env_steps = 1000, new_plan_frec = 20 ,
                 print("Continue execution..")
             else:
                 print("empty goal list")
+        if keyboard.is_pressed("e"):
+            print("stopping execution..")
+            break
         ########################################
 
         if(i % render_skip == 0):
@@ -256,33 +260,34 @@ def test_subsequent():
     use_logistics = True
     #model init
     #10_logistic_multitask_bestaccb40k"
-    model_name = "10_logistic_multitask_bestacc_l"
+    model_name = "10_logistic_multitask_bestacc"
     model_file_path = './models/%s.pth'%model_name
     model = PlayLMP(num_mixtures=10, use_logistics=use_logistics)
     model.load(model_file_path)
 
     #test
     sample_new_plan = 1
-    goal_lst = ["kettle", "microwave"]
+    goal_lst = ["microwave", "/subsequent/microwave_bottomknob","/subsequent/microwave_bottomknob_topknob", "/subsequent/microwave_topknob_bottomknob_slide"]
     goal_lst = ["./data/goals/"+goal+".png" for goal in goal_lst]
 
     video_name = "Test_multiple_goals_1.mp4"
-    test_model_seq_goals(model, goal_lst, env_steps = 500, new_plan_frec = sample_new_plan , \
+    test_model_seq_goals(model, goal_lst, env_steps = 700, new_plan_frec = sample_new_plan , \
                          show_video = True, save_video = True, save_filename=video_name)
 
-def test(model_file_path, goal_file_path, use_logistics):
+def test():
     use_logistics = True
     
     #model init
     #model_file_path = './models/fit_10_logistic_multitask_accuracy.pth'
-    model_name = "10_logistic_multitask_bestacc"
+    model_name = "10_logistic_multitask_bestacc_new"
     model_file_path = './models/%s.pth'%model_name
     model = PlayLMP(num_mixtures=10, use_logistics=use_logistics)
     model.load(model_file_path)
 
-    #[ "subsequent/microwave_kettle", "subsequent/kettle_switch", "subsequent/microwave_bottomknob_topknob"]
-    goals = ["microwave", "kettle", "bottomknob"]
-    names = ["microwave", "kettle", "bottomknob"]
+    #[ "subsequent/kettle_bottomknob_slide", "subsequent/microwave_bottomknob_topknob", "subsequent/kettle_switch"]
+    #goals = ["grip_hinge", "hinge" ]
+    goals = ["microwave", "kettle", "bottomknob","slide","grip_hinge","hinge_2"]
+    names = ["microwave", "kettle", "bottomknob","slide","grip_hinge","hinge_2"]
     save_parent_dir = "./analysis/videos/model_trials/"
     
     #create folders
@@ -292,13 +297,13 @@ def test(model_file_path, goal_file_path, use_logistics):
                     os.makedirs(save_folder)
     
     #Save videos
-    n_runs = 1
-    sample_new_plan = 10
+    n_runs = 5
+    sample_new_plan = 1
     for goal,name in zip(goals,names):
         for i in range(n_runs): #save n_runs videos for each goal
             goal_file_path = "./data/goals/"+goal+".png"
             video_name = "%s_npf_%d_"%(model_name, sample_new_plan)+name+"(%d).mp4"%i
-            test_model(model, goal_file_path, show_goal=False, env_steps=300, new_plan_frec=sample_new_plan, \
+            test_model(model, goal_file_path, show_goal=False, env_steps=400, new_plan_frec=sample_new_plan, \
                         save_video=True, show_video = False, save_folder=save_parent_dir+name+"/", save_filename=video_name)
 
 if __name__ == '__main__':
@@ -308,21 +313,20 @@ if __name__ == '__main__':
     parser.add_argument('--model_name', dest='model_file_path', type=str, default='1_gaussian_multitask.pth')
     parser.add_argument('--use_logistics', dest='use_logistics', type=bool, default=True)
     args = parser.parse_args()
-    print(args)
+    #print(args)
     #-------------------------------#
     
-    #test_subsequent()
+    # test_subsequent()
     # Good models
     # mws_1_gaussian_multitask_b77100
     # mws_1_gaussian_multitask_b41350
-    test(args.model_file_path, args.goal_file_path, args.use_logistics)
-
+    test()
 
     #----------- Save videos from reproduce files .pkl ------------#
-    # name = "friday_microwave_topknob_bottomknob_slide_0_path"
-    # file_path = "./data/validation/"+ name +".pkl"
-    # video_name = "val_data_0_2.mp4"
-    # reproduce_file_actions(file_path, show_video=False, save_video=True, save_filename = video_name)
+    # name = "friday_kettle_bottomknob_hinge_slide_1_path"
+    # file_path = "./data/training/"+ name +".pkl"
+    # video_name = "./analysis/videos/reproduced_demonstrations"
+    # reproduce_file_actions(file_path, show_video=True, save_video=False, save_filename = video_name)
 
     #----------- Print images from val packages ------------#
-    #print_img_goals(data_dir = "./data/validation/", i=0, n_packages=1)
+    # print_img_goals(data_dir = "./data/validation/", i=0, n_packages=1)
