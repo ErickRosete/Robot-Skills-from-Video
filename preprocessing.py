@@ -71,7 +71,7 @@ def mult_wind_preprocessing(paths, min_ws, max_ws, batch_size=64):
     seq_acts = np.array_split(seq_acts, num_splits)
     return seq_obs, seq_imgs, seq_acts
     
-def preprocess_data(paths, window_size=16, batch_size=64, validation=False):
+def preprocess_data(paths, window_size=16, batch_size=64, validation=False, reset_seed=False):
     #Complete paths -> List of windows
     seq_obs, seq_imgs, seq_acts = [], [], []
     for path in paths:
@@ -100,6 +100,8 @@ def preprocess_data(paths, window_size=16, batch_size=64, validation=False):
     seq_acts = np.stack(seq_acts, axis=0) #Train = B, S, A | Val = B, A
 
     #Shuffle inds
+    if(reset_seed):
+         np.random.seed(0) #same numbers..
     inds = np.arange(seq_obs.shape[0])
     np.random.shuffle(inds)
     seq_obs = seq_obs[inds]

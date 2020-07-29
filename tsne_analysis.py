@@ -72,10 +72,11 @@ def compute_tsne(batch_size = 32, method = "pp", save_name = "clusters", show=Fa
     #validation_paths = load_data(file_names)
     paths = load_all_paths()
 
+    #reset seeds to always get same clusters
     if(method == "pp"): #plan proposal
-        data_obs, data_imgs, _ = preprocess_data(paths, window_size, batch_size, validation=True)
+        data_obs, data_imgs, _ = preprocess_data(paths, window_size, batch_size, validation=True, reset_seed=True)
     else: #plan recognition
-        data_obs, data_imgs, _ = preprocess_data(validation_paths, window_size, batch_size, validation=False)
+        data_obs, data_imgs, _ = preprocess_data(validation_paths, window_size, batch_size, validation=False, reset_seed=True)
         data_obs, data_imgs = data_obs[:plot_n_batches], data_imgs[:plot_n_batches]
     #print("Observation shape", data_obs[0].shape)
 
@@ -96,24 +97,31 @@ def compute_tsne(batch_size = 32, method = "pp", save_name = "clusters", show=Fa
 
     X = np.concatenate(X, axis=0) # plot_n_batches*batch_size, 256
     #dimensionality reduction
-    X = PCA(n_components=50).fit_transform(X) #(batch, 50)
-    X = TSNE(n_components=2).fit_transform(X) #(batch, 2)
+    X = PCA(n_components=50, random_state = 0).fit_transform(X) #(batch, 50)
+    X = TSNE(n_components=2, random_state = 0).fit_transform(X) #(batch, 2)
     
     #form clusters
-    clusters = DBSCAN(eps=2, min_samples=3)
+    clusters = DBSCAN(eps=3.5, min_samples=8)
     labels = clusters.fit_predict(X)
 
-    #Plots
+    #Plot clusters
     fig, ax = plt.subplots()
     scatter = ax.scatter(X[:,0], X[:,1], c=labels, cmap="nipy_spectral")
-    # produce a legend with the unique colors from the scatter
-    legend1 = ax.legend(*scatter.legend_elements(), title="Classes")
-    ax.add_artist(legend1)
+    fig.suptitle("Latent space")
+    ax.axis('off')
+    
+    # Plot legends
+    fig_legends, ax_legends = plt.subplots(figsize = (3,10))
+    n_classes = np.unique(labels)
+    legend1 = ax_legends.legend(*scatter.legend_elements(num = n_classes ), title="Classes", loc='center')
+    ax_legends.add_artist(legend1)
 
     #save in analysis/tsne
     if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-    plt.savefig("%s%s.png"%(save_dir,save_name), dpi=100)
+    fig.savefig("%s%s.png"%(save_dir,save_name), dpi=100) #save cluster images
+    fig_legends.savefig("%s%s_labels.png"%(save_dir,save_name), dpi=100) #save legends
+
     if(show):
         plt.show()
     
