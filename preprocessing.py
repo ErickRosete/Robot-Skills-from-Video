@@ -114,3 +114,35 @@ def preprocess_data(paths, window_size=16, batch_size=64, validation=False, rese
     seq_imgs = np.array_split(seq_imgs, num_splits)
     seq_acts = np.array_split(seq_acts, num_splits)
     return seq_obs, seq_imgs, seq_acts
+
+def path_to_batches(path, window_size=16, batch_size=64, validation=False):
+    #Path-> List of batches without changing order
+    seq_obs, seq_imgs, seq_acts = [], [], []
+    observations = path['observations']
+    images = path['images']
+    actions = path['actions']
+    n = observations.shape[0]
+    t = 0
+    while t + window_size <= n - 1: 
+        if(validation):
+            seq_obs.append(observations[t])
+            seq_imgs.append(np.array([images[t], images[t+window_size]]))
+            seq_acts.append(actions[t])
+        else:
+            seq_obs.append(observations[t: t+window_size])
+            seq_imgs.append(images[t: t+window_size])
+            seq_acts.append(actions[t: t+window_size])
+        t += 1
+    
+    #List -> numpy array
+    seq_obs = np.stack(seq_obs, axis=0) #Train = B, S, O | Val = B, O
+    seq_imgs = np.stack(seq_imgs, axis=0) #B, S, H, W, C
+    seq_imgs = np.transpose(seq_imgs, (0, 1, 4, 2, 3)) #B, S, C, H, W
+    seq_acts = np.stack(seq_acts, axis=0) #Train = B, S, A | Val = B, A
+
+    #Split to batches
+    num_splits = seq_obs.shape[0]//batch_size
+    seq_obs = np.array_split(seq_obs, num_splits)
+    seq_imgs = np.array_split(seq_imgs, num_splits)
+    seq_acts = np.array_split(seq_acts, num_splits)
+    return seq_obs, seq_imgs, seq_acts
