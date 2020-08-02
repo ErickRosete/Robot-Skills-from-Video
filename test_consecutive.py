@@ -101,6 +101,7 @@ def test_subsequent(model_name, n_mixtures, use_logistics, goal_list, video_name
 
 if __name__ == '__main__':
     #model init
+    #model needs to be placed on "./models/"
     model_name = "10_logistic_multitask_bestacc_new"
     num_mixtures=10
     use_logistics=True
