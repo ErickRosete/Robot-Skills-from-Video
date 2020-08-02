@@ -130,8 +130,8 @@ if __name__ == '__main__':
     # name of goal to run. 
     # Will look for goal.png file in ./data/goals/__goals__.png
     goals = ["microwave", "grip_microwave", "bottomknob", "grip_hinge","subsequent/microwave_bottomknob_topknob"]
-    n_runs = 10 #number of videos to run
-    sample_new_plan = 10 #frequency to sample new plan from policy networl
+    n_runs = 10 #number of videos to run/save
+    sample_new_plan = 10 #frequency to sample new plan from policy network
 
     # test
     # Will save run on "./analysis/viedeos/model_trials/__goal__" folder

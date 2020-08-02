@@ -108,8 +108,8 @@ if __name__ == '__main__':
     #video params
     goal_lst = ["grip_kettle", "kettle", "/subsequent/kettle_switch"] 
     video_name = "kettle_switch"
-    sample_new_plan = 2
-    n_runs = 5
+    sample_new_plan = 2 #frequency to sample new plan from policy network
+    n_runs = 5 #number of videos to run/save
     
     #test
     test_subsequent(model_name, num_mixtures, use_logistics, goal_lst, video_name, sample_new_plan, n_runs)

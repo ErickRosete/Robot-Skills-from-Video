@@ -6,6 +6,8 @@ https://learning-from-play.github.io/
 The purpose of this project is to make a robot capable of performing many different complex tasks without having to relearn each from scratch in a continuous setting.
 
 ## Videos and models
+![results video example](./example.gif)
+
 You can find our trained models and video results of our implementation in the following link
 https://drive.google.com/drive/folders/1X2LBbLa2RBjLQEEP1bqxm035ok_Oab34?usp=sharing
 
@@ -41,6 +43,20 @@ We created this script to analyze the latent plan space representation
 foo@bar:~$ python tsne_analysis.py
 ```
 The resulting plots and images will be saved under analysis/temporal_tsne.
+
+### Test
+To visualize the model performance on consecutive tasks run the following script:
+```console
+foo@bar:~$ python test_consecutive.py
+```
+
+To visualize the model performance on a single task run the following script:
+```console
+foo@bar:~$ python test_single_goal.py
+```
+To further modify the specifications please check the python files which include a more
+detailed information on the parameters used. 
+Videos will be saved under "./analysis/videos/model_trials/__goal_name__".
 
 ## Contact
 For any other question or feedback, please send an email to:
