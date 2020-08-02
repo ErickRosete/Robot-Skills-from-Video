@@ -19,15 +19,16 @@ foo@bar:~$ tensorboard --logdir ./runs
 ## Requirements
 To run this project it is required to have a working installation of Mujoco 2.0, further information can be found on the following webpage: https://www.roboti.us/index.html
 * Train:
-  * Tensorboard
-  * Pytorch
-  * Numpy
-  * Matplotlib
-  * Scipy
-  * CV2
+  * Pytorch: https://pytorch.org/get-started/locally/
+  * Tensorboard: pip install tensorboard
+  * Numpy: pip install numpy
+  * Matplotlib: pip install matplotlib
+  * Scipy: pip install scipy
+  * CV2: pip install opencv-python
 * Additional packages for running the test environment:
-  * tqdm
-  * puppet
+  * tqdm: pip install tqdm
+  * mjrl: https://github.com/aravindr93/mjrl
+  * puppet: https://github.com/vikashplus/puppet
   * relay-policy-learning env: https://github.com/google-research/relay-policy-learning
 
 Please make sure that the "mjrl", "puppet" and "relay-policy-learning" folders are in the root folder of the project before executing the environment.
