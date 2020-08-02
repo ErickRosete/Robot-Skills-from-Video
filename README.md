@@ -35,29 +35,31 @@ Please make sure that the "mjrl", "puppet" and "relay-policy-learning" folders a
 
 ## How to run
 ### Train
-To train a model you will need to define the appropiate constant values in /utils/constants.py after that execute the command:
+To train a model you will need to define the appropiate constant values in "/utils/constants.py" after that execute the command:
 ```console
 foo@bar:~$ python training.py
 ```
-The model with the best accuracy and best training loss will be saved under the folder /models
+The model with the best accuracy and best training loss will be saved under the folder "/models".
 
 ### t-SNE Analysis
-We created this script to analyze the latent plan space representation 
+We created this script to analyze the latent plan space representation, before calling this, make sure to change the reference to the appropiate path of the model. 
 ```console
 foo@bar:~$ python tsne_analysis.py
 ```
-The resulting plots and images will be saved under analysis/temporal_tsne.
+The resulting plots and images will be saved under "analysis/temporal_tsne".
 
 ### Test
-To visualize the model performance on consecutive tasks run the following script:
-```console
-foo@bar:~$ python test_consecutive.py
-```
-
 To visualize the model performance on a single task run the following script:
 ```console
 foo@bar:~$ python test_single_goal.py
 ```
+
+To visualize the model performance on consecutive tasks run the following script, press key 'n' to switch the goal to the next image in the list and press 'e' if you like to end the episode.
+```console
+foo@bar:~$ python test_consecutive.py
+```
+
+Before calling any test script, please make sure to change the reference to the appropiate path of the model.
 To further modify the specifications please check the python files which include a more
 detailed information on the parameters used. 
 Videos will be saved under "./analysis/videos/model_trials/__goal_name__".
