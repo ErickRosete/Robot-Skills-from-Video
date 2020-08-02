@@ -1,0 +1,8 @@
+11,12 -> bottomknob  (-0.829, -0.004) girado
+15,16 -> topknob (mismos valores)
+17,18 -> switch (0,0) -> (-0.6, -0.04)
+19 ->Slide (0) -> (0.324)
+21 -> Hinge (0) -> (1.4) , en 1 ya esta medio abierto
+22 -> microondas(0) -> -0.6
+23 - 29 -> Kettle
+23,27,29

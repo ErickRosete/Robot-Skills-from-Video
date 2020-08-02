@@ -9,3 +9,5 @@ mjrl/
 results/
 models/
 analysis/videos/
+analysis/tsne_results/proposal_clusters/
+analysis/tsne_results/unseen_data_collection/
