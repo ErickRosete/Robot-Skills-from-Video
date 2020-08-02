@@ -101,7 +101,7 @@ def compute_tsne(batch_size = 32, method = "pp", save_name = "clusters", show=Fa
     X = TSNE(n_components=2, random_state = 0).fit_transform(X) #(batch, 2)
     
     #form clusters
-    clusters = DBSCAN(eps=3.5, min_samples=8)
+    clusters = DBSCAN(eps=2.5, min_samples=8)
     labels = clusters.fit_predict(X)
 
     #Plot clusters
