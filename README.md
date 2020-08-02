@@ -27,7 +27,10 @@ To run this project it is required to have a working installation of Mujoco 2.0,
   * CV2
 * Additional packages for running the test environment:
   * tqdm
+  * puppet
   * relay-policy-learning env: https://github.com/google-research/relay-policy-learning
+
+Please make sure that the "mjrl", "puppet" and "relay-policy-learning" folders are in the root folder of the project before executing the environment.
 
 ## How to run
 ### Train
