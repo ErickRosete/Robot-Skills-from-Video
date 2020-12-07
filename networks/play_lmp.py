@@ -2,7 +2,6 @@
 from networks.networks import  VisionNetwork, PlanRecognitionNetwork, PlanProposalNetwork
 from networks.logistic_policy_network import LogisticPolicyNetwork
 from networks.action_decoder_network import ActionDecoderNetwork
-from networks.gaussian_policy_network import GaussianPolicyNetwork
 import torch
 import os
 import numpy as np
@@ -22,10 +21,9 @@ class PlayLMP():
         self.use_logistics = use_logistics
         if use_logistics:
             self.action_decoder = LogisticPolicyNetwork(num_mixtures).cuda()
-        elif(num_mixtures > 1):
-            self.action_decoder = ActionDecoderNetwork(num_mixtures).cuda()
         else:
-            self.action_decoder = GaussianPolicyNetwork().cuda()
+            self.action_decoder = ActionDecoderNetwork(num_mixtures).cuda()
+
         params = list(self.plan_proposal.parameters()) + list(self.plan_recognition.parameters()) \
                  + list(self.action_decoder.parameters()) + list(self.vision.parameters())
         self.optimizer = optim.Adam(params, lr=lr)
@@ -115,22 +113,13 @@ class PlayLMP():
         goal_plan = torch.cat([encoded_imgs[:,-1], sampled_plan], dim=-1) #b, 64 + 256
         goal_plan = goal_plan.unsqueeze(1).expand(-1, s, -1) #b, s, 64 + 256
         action_input = torch.cat([pr_input, goal_plan], dim=-1) #b, s, 64 + 9 + 64 + 256 (visuo-propio + goal + plan)
-        if self.use_logistics:
-            logit_probs, log_scales, means = self.action_decoder(action_input)
-        elif(self.num_mixtures > 1):
-            alphas, variances, means= self.action_decoder(action_input)
-        else:
-            mean, variance = self.action_decoder(action_input)
+        
+        pi, sigma, mu = self.action_decoder(action_input)
         acts = self.to_tensor(acts) # B, S, 9
 
         # ------------ Loss ------------ #
         kl_loss = D.kl_divergence(pr_dist, pp_dist).mean()
-        if self.use_logistics:
-            mix_loss = self.action_decoder.loss(logit_probs, log_scales, means, acts)
-        elif(self.num_mixtures > 1):
-            mix_loss = self.action_decoder.loss(alphas, variances, means, acts)
-        else:
-            mix_loss = self.action_decoder.loss(mean, variance, acts)
+        mix_loss = self.action_decoder.loss(pi, sigma, mu, acts)
         total_loss = 1/s * mix_loss + self.beta * kl_loss 
 
         # ------------ Backward pass ------------ #
@@ -159,15 +148,9 @@ class PlayLMP():
             # ------------ Policy network ------------ #
             sampled_plan = pp_dist.sample() #sample from proposal net
             action_input = torch.cat([pp_input, sampled_plan], dim=-1).unsqueeze(1)
-            if self.use_logistics:
-                probs, log_scales, means = self.action_decoder(action_input)
-                action = self.action_decoder.sample(probs, log_scales, means)
-            elif(self.num_mixtures > 1):
-                alphas, variances, means= self.action_decoder(action_input)
-                action = self.action_decoder.sample(alphas, variances, means)
-            else:
-                mean, variance = self.action_decoder(action_input)
-                action = self.action_decoder.sample(mean, variance)
+            pi, sigma, mu = self.action_decoder(action_input)
+            action = self.action_decoder.sample(pi, sigma, mu)
+
         return action
 
     #Predict method to be able to compute val accuracy and error.
@@ -190,26 +173,14 @@ class PlayLMP():
             # ------------ Policy network ------------ #
             sampled_plan = pp_dist.sample() #sample from proposal net
             action_input = torch.cat([pp_input, sampled_plan], dim=-1).unsqueeze(1)
-            if self.use_logistics:
-                logit_probs, log_scales, means = self.action_decoder(action_input)
-                action = self.action_decoder.sample(logit_probs, log_scales, means)
-            elif(self.num_mixtures > 1):
-                alphas, variances, means = self.action_decoder(action_input)
-                action = self.action_decoder.sample(alphas, variances, means)
-            else:
-                mean, variance = self.action_decoder(action_input)
-                action = self.action_decoder.sample(mean, variance)
+            pi, sigma, mu= self.action_decoder(action_input)
+            action = self.action_decoder.sample(pi, sigma, mu)
+
 
             # ------------ Loss ------------ #
             #cannot compute KL_divergence, only return mixture loss
-            action_labels = self.to_tensor(act)
-            if self.use_logistics:
-                action_labels = action_labels.unsqueeze(1)
-                mix_loss = self.action_decoder.loss(logit_probs, log_scales, means, action_labels)
-            elif(self.num_mixtures > 1):
-                mix_loss = self.action_decoder.loss(alphas, variances, means, action_labels)
-            else:
-                mix_loss = self.action_decoder.loss(mean, variance, action_labels)
+            action_labels = self.to_tensor(act).unsqueeze(1) 
+            mix_loss = self.action_decoder.loss(pi, sigma, mu, action_labels)
 
             # ------------ Accuracy ------------ #
             p_actions = action.cpu().detach().numpy().squeeze()
@@ -229,16 +200,8 @@ class PlayLMP():
             obs = self.to_tensor(obs)
             pp_input = torch.cat([encoded_imgs[:, 0], obs, encoded_imgs[:,-1]], dim=-1)
             action_input = torch.cat([pp_input, plan], dim=-1).unsqueeze(1)
-            if self.use_logistics:
-                probs, log_scales, means = self.action_decoder(action_input)
-                action = self.action_decoder.sample(probs, log_scales, means)
-            elif(self.num_mixtures > 1):
-                alphas, variances, means= self.action_decoder(action_input)
-                action = self.action_decoder.sample(alphas, variances, means)
-            else:
-                mean, variance = self.action_decoder(action_input)
-                action = self.action_decoder.sample(mean, variance)
-
+            pi, sigma, mu = self.action_decoder(action_input)
+            action = self.action_decoder.sample(pi, sigma, mu)
         return action
 
     def save(self, file_name):

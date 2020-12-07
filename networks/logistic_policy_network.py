@@ -35,7 +35,7 @@ def gumbel_softmax(logits, temperature):
     return (y_hard - y).detach() + y    #[*, n_class] an one-hot vector
 
 class LogisticPolicyNetwork(nn.Module):
-    def __init__(self, n_dist=5):
+    def __init__(self, n_dist=constants.N_MIXTURES):
         super(LogisticPolicyNetwork, self).__init__()
         self.log_scale_min = -7.0
         self.in_features = (constants.VISUAL_FEATURES + constants.N_DOF_ROBOT) + \

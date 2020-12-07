@@ -9,7 +9,6 @@ VISUAL_FEATURES = 64
 PLAN_FEATURES = 256
 USE_LOGISTICS = True
 N_MIXTURES = 10 # for gaussian distributions
-N_LOGITS = 10 # for logistic distributions
 
 # ------------ Training constants  ------------ #
 N_EPOCH = 50
