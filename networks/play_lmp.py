@@ -8,7 +8,6 @@ import numpy as np
 import torch.optim as optim
 import torch.distributions as D
 from torch.distributions.normal import Normal
-import utils.mixture as mixtures
 import utils.plot as plot
 
 class PlayLMP():
