@@ -63,13 +63,8 @@ class MDN(nn.Module):
         ret = norm_term * torch.exp(-0.5 * ((data - mu) / sigma)**2) / sigma
         return torch.prod(ret, -1) # b, s, k
 
-    def sample(self, pi, sigma, mu, eps=3e-3):
-        if (pi<=eps).any():                             # Verify appropiate priors
-            pi[pi<=eps] += eps                          # Prior probability must be bigger than eps
-            pi /= pi.sum(axis=-1, keepdim=True)         # Sum must be 1
-
-        categorical = Categorical(pi) 
-        sel_gaussians = categorical.sample().data #b, s
+    def sample(self, pi, sigma, mu):
+        sel_gaussians = torch.multinomial(pi.view(-1, pi.shape[-1]), 1)
         sel_gaussians = sel_gaussians.view(mu.shape[0], mu.shape[1], 1, 1).expand(
                         -1, -1, -1, self.out_features) #b, s, 1, o
         sel_mu = torch.gather(mu, 2, sel_gaussians).squeeze() #b, s, o
