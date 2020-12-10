@@ -54,7 +54,7 @@ class MDN(nn.Module):
 
     def loss(self, pi, sigma, mu, target):
         prob = pi * self.gaussian_probability(sigma, mu, target) #b, s, k
-        nll = -torch.log(torch.sum(prob, dim=-1)) #b, s
+        nll = -torch.log(torch.sum(prob, dim=-1) + 1e-7) #b, s
         return torch.mean(nll)
 
     def gaussian_probability(self, sigma, mu, target):
